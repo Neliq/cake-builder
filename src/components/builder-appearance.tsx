@@ -72,23 +72,23 @@ type CakeAppearance = {
 const cakeShapes: CakeShape[] = [
   {
     id: "circle",
-    name: "Circle",
+    name: "Okrągły",
     type: "circle",
   },
   {
     id: "square",
-    name: "Square",
+    name: "Kwadratowy",
     type: "square",
   },
   {
     id: "heart",
-    name: "Heart",
+    name: "Serce",
     type: "heart",
     path: "M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z",
   },
   {
     id: "triangle",
-    name: "Triangle",
+    name: "Trójkątny",
     type: "triangle",
     path: "M12 2 L22 22 L2 22 Z",
   },
@@ -96,12 +96,12 @@ const cakeShapes: CakeShape[] = [
 
 // Sample data for colors
 const baseColors = [
-  { id: "white", name: "White", value: "#FFFFFF" },
-  { id: "cream", name: "Cream", value: "#FFF8DC" },
-  { id: "pink", name: "Pink", value: "#FFB6C1" },
-  { id: "blue", name: "Blue", value: "#87CEFA" },
-  { id: "chocolate", name: "Chocolate", value: "#D2691E" },
-  { id: "mint", name: "Mint", value: "#98FB98" },
+  { id: "white", name: "Biały", value: "#FFFFFF" },
+  { id: "cream", name: "Kremowy", value: "#FFF8DC" },
+  { id: "pink", name: "Różowy", value: "#FFB6C1" },
+  { id: "blue", name: "Niebieski", value: "#87CEFA" },
+  { id: "chocolate", name: "Czekoladowy", value: "#D2691E" },
+  { id: "mint", name: "Miętowy", value: "#98FB98" },
 ];
 
 // Define pricing constants
@@ -582,7 +582,7 @@ export default function CakeAppearanceBuilder() {
     // Check file size before processing - limit to 2MB
     if (file.size > 2 * 1024 * 1024) {
       setValidationMessage(
-        "Image size exceeds 2MB limit. Please choose a smaller image."
+        "Rozmiar obrazu przekracza limit 2MB. Wybierz mniejszy obraz."
       );
       setAlertOpen(true);
       if (fileInputRef.current) {
@@ -669,7 +669,7 @@ export default function CakeAppearanceBuilder() {
       return {
         isValid: false,
         message:
-          "Please add at least one decoration (text or image) to your cake.",
+          "Dodaj przynajmniej jedną dekorację (tekst lub obraz) do swojego tortu.",
       };
     }
     return { isValid: true };
@@ -728,14 +728,14 @@ export default function CakeAppearanceBuilder() {
       } catch (error) {
         console.error("Error saving cake data:", error);
         setValidationMessage(
-          "There was a problem saving your cake design. Try using fewer or smaller images."
+          "Wystąpił problem z zapisaniem projektu tortu. Spróbuj użyć mniej lub mniejszych obrazów."
         );
         setAlertOpen(true);
       }
     } else {
       // Show validation error
       setValidationMessage(
-        validation.message || "Your cake design is incomplete."
+        validation.message || "Twój projekt tortu jest niekompletny."
       );
       setAlertOpen(true);
     }
@@ -851,12 +851,12 @@ export default function CakeAppearanceBuilder() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Cake Appearance</h1>
+      <h1 className="text-3xl font-bold mb-6">Wygląd Tortu</h1>
 
       <div className="grid grid-cols-1 gap-8">
         {/* Cake Preview - Top Down View */}
         <div className="bg-muted p-6 rounded-lg">
-          <h2 className="text-2xl font-semibold mb-4">Cake Preview</h2>
+          <h2 className="text-2xl font-semibold mb-4">Podgląd Tortu</h2>
           <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4">
             <div className="flex flex-col items-center">
               <div
@@ -902,7 +902,7 @@ export default function CakeAppearanceBuilder() {
                   onClick={handleContinue}
                   variant="default"
                 >
-                  Continue to Next Step
+                  Przejdź do Następnego Kroku
                 </Button>
               </div>
             </div>
@@ -910,34 +910,36 @@ export default function CakeAppearanceBuilder() {
             {/* Guidance and Selected Element Properties */}
             <div className="flex flex-col space-y-4">
               <div className="bg-white p-4 rounded-md border">
-                <h3 className="font-medium text-lg mb-2">Instructions</h3>
+                <h3 className="font-medium text-lg mb-2">Instrukcje</h3>
                 <ul className="text-sm space-y-1 list-disc list-inside">
-                  <li>Choose a cake shape and color below</li>
-                  <li>Add text or images to decorate your cake</li>
-                  <li>Drag elements to position them on the cake</li>
-                  <li>Click on an element to edit or delete it</li>
+                  <li>Wybierz kształt i kolor tortu poniżej</li>
+                  <li>Dodaj tekst lub obrazy, aby udekorować swój tort</li>
+                  <li>Przeciągnij elementy, aby umieścić je na torcie</li>
+                  <li>Kliknij na element, aby go edytować lub usunąć</li>
                 </ul>
               </div>
 
               {/* Price Breakdown */}
               <div className="bg-white p-4 rounded-md border">
-                <h3 className="font-medium text-lg mb-2">Price Breakdown</h3>
+                <h3 className="font-medium text-lg mb-2">Rozkład Cen</h3>
                 <div className="space-y-1">
                   <div className="flex justify-between">
-                    <span>Base cake:</span>
+                    <span>Podstawa tortu:</span>
                     <span>{baseCakePrice.toFixed(2)} zł</span>
                   </div>
 
                   {appearance.shape.type in PRICING.SHAPE_PREMIUM && (
                     <div className="flex justify-between">
-                      <span>Premium shape ({appearance.shape.name}):</span>
+                      <span>Kształt premium ({appearance.shape.name}):</span>
                       <span>{getShapePremiumCost().toFixed(2)} zł</span>
                     </div>
                   )}
 
                   {appearance.texts.length > 0 && (
                     <div className="mt-2">
-                      <div className="text-sm font-medium">Text elements:</div>
+                      <div className="text-sm font-medium">
+                        Elementy tekstowe:
+                      </div>
                       <div className="max-h-20 overflow-y-auto">
                         {appearance.texts.map((text) => (
                           <div
@@ -956,14 +958,16 @@ export default function CakeAppearanceBuilder() {
 
                   {appearance.images.length > 0 && (
                     <div className="mt-2">
-                      <div className="text-sm font-medium">Image elements:</div>
+                      <div className="text-sm font-medium">
+                        Elementy graficzne:
+                      </div>
                       <div className="max-h-20 overflow-y-auto">
                         {appearance.images.map((image, index) => (
                           <div
                             key={image.id}
                             className="flex justify-between text-sm pl-2"
                           >
-                            <span>Image {index + 1}</span>
+                            <span>Obraz {index + 1}</span>
                             <span>{image.price.toFixed(2)} zł</span>
                           </div>
                         ))}
@@ -973,7 +977,7 @@ export default function CakeAppearanceBuilder() {
                 </div>
 
                 <div className="mt-4 pt-2 border-t flex justify-between items-center font-medium">
-                  <span>Total:</span>
+                  <span>Łącznie:</span>
                   <span className="text-lg">
                     {calculateTotalPrice().toFixed(2)} zł
                   </span>
@@ -983,29 +987,29 @@ export default function CakeAppearanceBuilder() {
               {/* Selected element section */}
               {selectedElement && (
                 <div className="bg-white p-4 rounded-md border">
-                  <h3 className="font-medium text-lg mb-2">Selected Element</h3>
+                  <h3 className="font-medium text-lg mb-2">Wybrany Element</h3>
                   {selectedElement.startsWith("text_") ? (
                     <div className="space-y-2">
-                      <p className="text-sm">Edit text properties:</p>
+                      <p className="text-sm">Edytuj właściwości tekstu:</p>
                       <Button
                         variant="outline"
                         size="sm"
                         className="w-full"
                         onClick={() => deleteElement(selectedElement)}
                       >
-                        Delete Text
+                        Usuń Tekst
                       </Button>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-sm">Edit image properties:</p>
+                      <p className="text-sm">Edytuj właściwości obrazu:</p>
                       <Button
                         variant="outline"
                         size="sm"
                         className="w-full"
                         onClick={() => deleteElement(selectedElement)}
                       >
-                        Delete Image
+                        Usuń Obraz
                       </Button>
                     </div>
                   )}
@@ -1017,18 +1021,18 @@ export default function CakeAppearanceBuilder() {
 
         {/* Design Options */}
         <div>
-          <h2 className="text-2xl font-semibold mb-4">Design Your Cake</h2>
+          <h2 className="text-2xl font-semibold mb-4">Zaprojektuj Swój Tort</h2>
           <Tabs defaultValue="shape">
             <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="shape">Shape & Color</TabsTrigger>
-              <TabsTrigger value="text">Add Text</TabsTrigger>
-              <TabsTrigger value="image">Add Image</TabsTrigger>
+              <TabsTrigger value="shape">Kształt i Kolor</TabsTrigger>
+              <TabsTrigger value="text">Dodaj Tekst</TabsTrigger>
+              <TabsTrigger value="image">Dodaj Obraz</TabsTrigger>
             </TabsList>
 
             {/* Shape & Color Tab */}
             <TabsContent value="shape" className="space-y-4">
               <div>
-                <h3 className="text-lg font-medium mb-2">Cake Shape</h3>
+                <h3 className="text-lg font-medium mb-2">Kształt Tortu</h3>
                 <ScrollArea className="w-full">
                   <div className="flex flex-row gap-4 pb-4">
                     {cakeShapes.map((shape) => (
@@ -1078,7 +1082,7 @@ export default function CakeAppearanceBuilder() {
               </div>
 
               <div>
-                <h3 className="text-lg font-medium mb-2">Cake Color</h3>
+                <h3 className="text-lg font-medium mb-2">Kolor Tortu</h3>
                 <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
                   {baseColors.map((color) => (
                     <TooltipProvider key={color.id}>
@@ -1108,17 +1112,17 @@ export default function CakeAppearanceBuilder() {
             <TabsContent value="text" className="space-y-4">
               <div className="grid gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="text-input">Text Content</Label>
+                  <Label htmlFor="text-input">Treść Tekstu</Label>
                   <Input
                     id="text-input"
-                    placeholder="Enter text for your cake"
+                    placeholder="Wpisz tekst na tort"
                     value={newText}
                     onChange={(e) => setNewText(e.target.value)}
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <Label>Text Color</Label>
+                  <Label>Kolor Tekstu</Label>
                   <div className="flex items-center space-x-2">
                     <div className="flex-1 flex space-x-2">
                       <Popover>
@@ -1175,13 +1179,16 @@ export default function CakeAppearanceBuilder() {
 
                 <div className="mt-2 text-sm text-muted-foreground">
                   <p>
-                    Text decorations start at {PRICING.TEXT_BASE.toFixed(2)} zł.
-                    Larger text costs more.
+                    Dekoracje tekstowe zaczynają się od{" "}
+                    {PRICING.TEXT_BASE.toFixed(2)} zł. Większy tekst kosztuje
+                    więcej.
                   </p>
                 </div>
 
                 <Button onClick={addOrUpdateText}>
-                  {selectedTextElement ? "Update Text" : "Add Text to Cake"}
+                  {selectedTextElement
+                    ? "Aktualizuj Tekst"
+                    : "Dodaj Tekst do Tortu"}
                 </Button>
 
                 {selectedTextElement && (
@@ -1193,7 +1200,7 @@ export default function CakeAppearanceBuilder() {
                       setSelectedElement(null);
                     }}
                   >
-                    Cancel Editing
+                    Anuluj Edycję
                   </Button>
                 )}
               </div>
@@ -1203,7 +1210,7 @@ export default function CakeAppearanceBuilder() {
             <TabsContent value="image" className="space-y-4">
               <div className="grid gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="image-upload">Upload Image</Label>
+                  <Label htmlFor="image-upload">Wgraj Obraz</Label>
                   <div className="flex flex-col gap-2">
                     <Input
                       id="image-upload"
@@ -1213,13 +1220,13 @@ export default function CakeAppearanceBuilder() {
                       onChange={handleImageUpload}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Accepted formats: JPG, PNG, GIF (max 5MB)
+                      Akceptowane formaty: JPG, PNG, GIF (maks. 5MB)
                     </p>
                   </div>
                 </div>
                 <p className="text-sm">
-                  Images start at {PRICING.IMAGE_BASE.toFixed(2)} zł. Larger
-                  images cost more.
+                  Obrazy zaczynają się od {PRICING.IMAGE_BASE.toFixed(2)} zł.
+                  Większe obrazy kosztują więcej.
                 </p>
               </div>
             </TabsContent>
@@ -1231,7 +1238,7 @@ export default function CakeAppearanceBuilder() {
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cake Design Incomplete</AlertDialogTitle>
+            <AlertDialogTitle>Niekompletny Projekt Tortu</AlertDialogTitle>
             <AlertDialogDescription>{validationMessage}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

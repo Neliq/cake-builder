@@ -424,16 +424,18 @@ export default function CakeBuilder({
     const issues: string[] = [];
 
     if (!hasThreeLayers) {
-      issues.push("Your cake needs at least 3 layers to continue.");
+      issues.push(
+        "Twój tort potrzebuje co najmniej 3 warstw, aby kontynuować."
+      );
     }
 
     if (!hasBottomDough()) {
-      issues.push("The bottom layer must be a dough type for stability.");
+      issues.push("Dolna warstwa musi być ciastem dla stabilności.");
     }
 
     if (!hasValidLayerStacking()) {
       issues.push(
-        "You cannot stack more than 2 non-dough layers on top of each other."
+        "Nie można układać więcej niż 2 warstw innych niż ciasto jedna na drugiej."
       );
     }
 
@@ -482,7 +484,7 @@ export default function CakeBuilder({
     } else {
       // Show validation error
       setValidationMessage(
-        validation.message || "Your cake structure is invalid."
+        validation.message || "Struktura twojego tortu jest nieprawidłowa."
       );
       setAlertOpen(true);
     }
@@ -490,12 +492,12 @@ export default function CakeBuilder({
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Cake Builder</h1>
+      <h1 className="text-3xl font-bold mb-6">Kreator Tortu</h1>
 
       <div className="grid grid-cols-1 gap-8">
         {/* Cake Preview */}
         <div className="bg-muted p-6 rounded-lg">
-          <h2 className="text-2xl font-semibold mb-4">Cake Preview</h2>
+          <h2 className="text-2xl font-semibold mb-4">Podgląd Tortu</h2>
           <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4">
             <div className="flex flex-col items-center w-64 mx-auto">
               <DndContext
@@ -519,7 +521,7 @@ export default function CakeBuilder({
                         />
                       ))
                   ) : (
-                    <p className="text-gray-400">Start building your cake!</p>
+                    <p className="text-gray-400">Zacznij budować swój tort!</p>
                   )}
                 </SortableContext>
 
@@ -561,14 +563,14 @@ export default function CakeBuilder({
                   onClick={handleContinue}
                   variant="default"
                 >
-                  Continue to Next Step
+                  Przejdź do Następnego Kroku
                 </Button>
               </div>
             </div>
 
             {/* Requirements status and Price */}
             <div className="flex flex-col">
-              <h3 className="text-lg font-medium mb-2">Requirements</h3>
+              <h3 className="text-lg font-medium mb-2">Wymagania</h3>
               <ul className="space-y-2">
                 {/* At least 3 layers requirement */}
                 <li
@@ -629,7 +631,7 @@ export default function CakeBuilder({
                       <circle cx="12" cy="12" r="10"></circle>
                     </svg>
                   )}
-                  <span>At least 3 layers total</span>
+                  <span>Co najmniej 3 warstwy łącznie</span>
                 </li>
 
                 {/* Bottom dough requirement */}
@@ -691,7 +693,7 @@ export default function CakeBuilder({
                       <circle cx="12" cy="12" r="10"></circle>
                     </svg>
                   )}
-                  <span>Bottom layer must be dough</span>
+                  <span>Dolna warstwa musi być ciastem</span>
                 </li>
 
                 {/* Layer stacking requirement */}
@@ -753,13 +755,13 @@ export default function CakeBuilder({
                       <circle cx="12" cy="12" r="10"></circle>
                     </svg>
                   )}
-                  <span>Max 2 non-dough layers in a row</span>
+                  <span>Maksymalnie 2 warstwy inne niż ciasto pod rząd</span>
                 </li>
               </ul>
 
               {/* Price Display */}
               <div className="mt-6 border-t pt-4">
-                <h3 className="text-lg font-medium mb-2">Price Breakdown</h3>
+                <h3 className="text-lg font-medium mb-2">Rozkład Cen</h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                   {cakeLayers.map((layer) => (
                     <div
@@ -772,14 +774,14 @@ export default function CakeBuilder({
                   ))}
                 </div>
                 <div className="flex justify-between items-center font-medium mt-4 pt-4 border-t">
-                  <span>Base Price:</span>
+                  <span>Cena Podstawowa:</span>
                   <span>{calculateTotalPrice().toFixed(2)} zł</span>
                 </div>
               </div>
 
               {cakeLayers.length === 0 && (
                 <p className="text-sm text-muted-foreground mt-4">
-                  Add layers to start building your cake
+                  Dodaj warstwy, aby zacząć budować tort
                 </p>
               )}
             </div>
@@ -788,15 +790,15 @@ export default function CakeBuilder({
 
         {/* Addons Selection */}
         <div>
-          <h2 className="text-2xl font-semibold mb-4">Add Layers</h2>
+          <h2 className="text-2xl font-semibold mb-4">Dodaj Warstwy</h2>
           <Tabs defaultValue="dough">
             <TabsList className="grid grid-cols-6 mb-4">
-              <TabsTrigger value="dough">Doughs</TabsTrigger>
-              <TabsTrigger value="sponge">Sponges</TabsTrigger>
-              <TabsTrigger value="jelly">Jellies</TabsTrigger>
-              <TabsTrigger value="fruit">Fruits</TabsTrigger>
-              <TabsTrigger value="cream">Creams</TabsTrigger>
-              <TabsTrigger value="topping">Toppings</TabsTrigger>
+              <TabsTrigger value="dough">Ciasta</TabsTrigger>
+              <TabsTrigger value="sponge">Biszkopt</TabsTrigger>
+              <TabsTrigger value="jelly">Galaretki</TabsTrigger>
+              <TabsTrigger value="fruit">Owoce</TabsTrigger>
+              <TabsTrigger value="cream">Kremy</TabsTrigger>
+              <TabsTrigger value="topping">Polewy</TabsTrigger>
             </TabsList>
 
             {["dough", "sponge", "jelly", "fruit", "cream", "topping"].map(
@@ -831,7 +833,7 @@ export default function CakeBuilder({
                                 size="sm"
                                 className="w-full text-xs"
                               >
-                                Add
+                                Dodaj
                               </Button>
                             </CardFooter>
                           </Card>
@@ -850,7 +852,7 @@ export default function CakeBuilder({
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cake Structure Issue</AlertDialogTitle>
+            <AlertDialogTitle>Problem ze Strukturą Tortu</AlertDialogTitle>
             <AlertDialogDescription>{validationMessage}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

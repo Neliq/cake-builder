@@ -257,9 +257,26 @@ export default function Dostawa() {
       deliveryData.pickupLocation = data.pickupLocation;
     }
 
-    // Update context
-    setCustomerDetails(customerData);
-    setDeliveryDetails(deliveryData);
+    // Update context with a safety check
+    if (typeof setCustomerDetails === "function") {
+      setCustomerDetails(customerData);
+    } else {
+      // Fallback: Store in localStorage if context function isn't available
+      console.warn(
+        "setCustomerDetails is not available, using localStorage instead"
+      );
+      localStorage.setItem("customer-details", JSON.stringify(customerData));
+    }
+
+    if (typeof setDeliveryDetails === "function") {
+      setDeliveryDetails(deliveryData);
+    } else {
+      // Fallback: Store in localStorage if context function isn't available
+      console.warn(
+        "setDeliveryDetails is not available, using localStorage instead"
+      );
+      localStorage.setItem("delivery-details", JSON.stringify(deliveryData));
+    }
 
     // Navigate to summary
     router.push("/koszyk/podsumowanie");

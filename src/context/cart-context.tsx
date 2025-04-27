@@ -26,20 +26,54 @@ export interface CartItem {
   };
 }
 
-interface CartContextType {
+export interface CustomerDetails {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+export interface DeliveryDetails {
+  address: string;
+  city: string;
+  postalCode: string;
+}
+
+export type CartContextType = {
   items: CartItem[];
-  itemCount: number; // Added itemCount property
+  customerDetails: CustomerDetails | null;
+  deliveryDetails: DeliveryDetails | null;
+  setCustomerDetails: (details: CustomerDetails) => void;
+  setDeliveryDetails: (details: DeliveryDetails) => void;
+  itemCount: number;
   addItem: (id: string, quantity?: number) => void;
   decreaseItem: (id: string) => void;
   removeItem: (id: string) => void;
   clearCart: () => void;
   addCustomCake: (cake: CartItem) => void;
-}
+};
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+export const CartContext = createContext<CartContextType>({
+  items: [],
+  customerDetails: null,
+  deliveryDetails: null,
+  setCustomerDetails: () => {},
+  setDeliveryDetails: () => {},
+  itemCount: 0,
+  addItem: () => {},
+  decreaseItem: () => {},
+  removeItem: () => {},
+  clearCart: () => {},
+  addCustomCake: () => {},
+});
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [customerDetails, setCustomerDetails] =
+    useState<CustomerDetails | null>(null);
+  const [deliveryDetails, setDeliveryDetails] =
+    useState<DeliveryDetails | null>(null);
 
   // Calculate total quantity of items
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
@@ -125,22 +159,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems([]);
   };
 
+  const contextValue = {
+    items,
+    customerDetails,
+    deliveryDetails,
+    setCustomerDetails,
+    setDeliveryDetails,
+    itemCount,
+    addItem,
+    decreaseItem,
+    removeItem,
+    clearCart,
+    addCustomCake,
+  };
+
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        itemCount, // Provide the itemCount
-        addItem,
-        decreaseItem,
-        removeItem,
-        clearCart,
-        addCustomCake,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
+    <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>
   );
-}
+};
 
 // Custom hook to use the cart context
 export function useCart() {
