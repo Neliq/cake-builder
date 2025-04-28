@@ -78,7 +78,7 @@ function CakeCard({ cake, onImport }) {
           />
         ) : (
           <div className="h-full w-full flex flex-col items-center justify-center bg-amber-50 p-4">
-            <h3 className="text-lg font-semibold mb-2">Taste Layers</h3>
+            <h3 className="text-lg font-semibold mb-2">Warstwy Smakowe</h3>
             <div className="w-full">
               {cake.layers.map((layer, index) => {
                 const baseLayer = layer.toLowerCase();
@@ -131,11 +131,11 @@ function CakeCard({ cake, onImport }) {
       <div className="p-4">
         <h2 className="text-xl font-semibold mb-2 text-primary">{cake.name}</h2>
         <div className="flex justify-between mb-4 text-primary">
-          <span>Production: {formatDate(cake.productionDate)}</span>
+          <span>Produkcja: {formatDate(cake.productionDate)}</span>
           <span className="font-bold">{cake.price} zł</span>
         </div>
         <Button onClick={() => onImport(cake)} className="w-full">
-          Import to Builder
+          Importuj do Kreatora
         </Button>
       </div>
     </div>
@@ -163,11 +163,11 @@ export default function Torty() {
       <Navbar />
       <main className="container mx-auto py-8 px-4">
         <h1 className="text-3xl font-bold mb-8 text-center">
-          Our Customer Cakes Gallery
+          Galeria Tortów Naszych Klientów
         </h1>
         <p className="text-center mb-8 text-secondary-foreground">
-          Browse through cakes made for our customers. Hover over images to see
-          the layers!
+          Przeglądaj torty wykonane dla naszych klientów. Najedź na obrazek, aby
+          zobaczyć warstwy!
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

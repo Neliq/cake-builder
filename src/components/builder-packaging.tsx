@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,8 +17,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, Gift, ShoppingCart } from "lucide-react";
-import { useCart, CartItem } from "@/context/cart-context";
+import { CheckCircle2, Gift, Plus, ShoppingCart } from "lucide-react";
+import { useCart } from "@/context/cart-context";
+import { useBuilder } from "@/context/builder-context";
+import { CartItem } from "@/types/cart";
 import { v4 as uuidv4 } from "uuid";
 
 interface PackagingOption {
@@ -27,13 +29,6 @@ interface PackagingOption {
   description: string;
   price: number;
   imageUrl: string;
-}
-
-interface BoxSizeOption {
-  id: string;
-  name: string;
-  description: string;
-  additionalPrice: number;
 }
 
 interface BuilderPackagingProps {
@@ -49,57 +44,24 @@ export function BuilderPackaging({
   cakeData = { basePrice: 89.99 },
 }: BuilderPackagingProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
 
-  // Extract all values from useCart at the top level
-  const { addCustomCake } = useCart();
+  const { addCustomCake, updateItem } = useCart();
 
-  // Packaging states
-  const [selectedPackaging, setSelectedPackaging] =
-    useState<string>("standard");
-  const [selectedSize, setSelectedSize] = useState<string>("medium");
-  const [giftMessage, setGiftMessage] = useState<string>("");
-  const [recipientName, setRecipientName] = useState<string>("");
+  const builderContext = useBuilder();
 
-  // State to hold the accumulated cake price from previous steps
-  const [accumulatedCakePrice, setAccumulatedCakePrice] = useState<number>(
-    cakeData.basePrice
-  );
-  const [tastePrice, setTastePrice] = useState<number>(0);
-  const [appearancePrice, setAppearancePrice] = useState<number>(0);
+  const {
+    tastePreview,
+    appearancePreview,
+    setPackagingPreview,
+    basePrice = 0,
+    appearancePrice = 0,
+    packagingPrice: contextPackagingPrice,
+    customText,
+    resetBuilder,
+  } = builderContext;
 
-  // Load cake data from previous steps
-  useEffect(() => {
-    // Load taste data
-    const tasteData = localStorage.getItem("cake-taste-data");
-    if (tasteData) {
-      try {
-        const parsedData = JSON.parse(tasteData);
-        if (parsedData.basePrice) {
-          setTastePrice(parsedData.basePrice);
-        }
-      } catch (e) {
-        console.error("Failed to parse taste data", e);
-      }
-    }
-
-    // Load appearance data
-    const appearanceData = localStorage.getItem("cake-appearance-data");
-    if (appearanceData) {
-      try {
-        const parsedData = JSON.parse(appearanceData);
-        if (parsedData.appearancePrice) {
-          setAppearancePrice(parsedData.appearancePrice);
-        }
-        if (parsedData.totalPrice) {
-          setAccumulatedCakePrice(parsedData.totalPrice);
-        }
-      } catch (e) {
-        console.error("Failed to parse appearance data", e);
-      }
-    }
-  }, []);
-
-  // Sample packaging options
   const packagingOptions: PackagingOption[] = [
     {
       id: "standard",
@@ -131,34 +93,11 @@ export function BuilderPackaging({
     },
   ];
 
-  const boxSizeOptions: BoxSizeOption[] = [
-    {
-      id: "small",
-      name: "Małe (do 1kg)",
-      description: "Idealne dla małych tortów do 1kg",
-      additionalPrice: -5,
-    },
-    {
-      id: "medium",
-      name: "Średnie (1-2kg)",
-      description: "Standardowy rozmiar dla większości tortów",
-      additionalPrice: 0,
-    },
-    {
-      id: "large",
-      name: "Duże (2-3kg)",
-      description: "Dla dużych tortów okolicznościowych",
-      additionalPrice: 10,
-    },
-    {
-      id: "xl",
-      name: "Bardzo duże (powyżej 3kg)",
-      description: "Dla wyjątkowo dużych tortów na specjalne okazje",
-      additionalPrice: 20,
-    },
-  ];
+  const [selectedPackaging, setSelectedPackaging] =
+    useState<string>("standard");
+  const [giftMessage, setGiftMessage] = useState<string>("");
+  const [recipientName, setRecipientName] = useState<string>("");
 
-  // Get the selected packaging option
   const getSelectedPackagingOption = () => {
     return (
       packagingOptions.find((option) => option.id === selectedPackaging) ||
@@ -166,118 +105,112 @@ export function BuilderPackaging({
     );
   };
 
-  // Get the selected size option
-  const getSelectedSizeOption = () => {
-    return (
-      boxSizeOptions.find((option) => option.id === selectedSize) ||
-      boxSizeOptions[1]
-    );
-  };
-
-  // Calculate total price
-  const calculateTotalPrice = () => {
+  const calculateCurrentTotalPrice = () => {
     const packagingPrice = getSelectedPackagingOption().price;
-    const sizeAdditionalPrice = getSelectedSizeOption().additionalPrice;
-    return accumulatedCakePrice + packagingPrice + sizeAdditionalPrice;
+    return basePrice + appearancePrice + packagingPrice;
   };
 
-  // Function to create a preview image from the packaging selection (simplified version)
   const getPackagingPreview = (): string => {
     const selectedOption = getSelectedPackagingOption();
     return selectedOption.imageUrl || "/packagings/default-box.jpg";
   };
 
-  // Add cake to cart and continue shopping
+  useEffect(() => {
+    const { packagingPreview } = builderContext;
+    if (packagingPreview) {
+      const matchingOption = packagingOptions.find(
+        (opt) => opt.name === packagingPreview.type
+      );
+      if (matchingOption) {
+        setSelectedPackaging(matchingOption.id);
+      }
+      setGiftMessage(packagingPreview.giftMessage || "");
+      setRecipientName(packagingPreview.recipientName || "");
+    }
+  }, [builderContext.packagingPreview]);
+
   const handleAddToCartAndContinue = () => {
-    addToCart();
+    handleAddToCart();
     toast("Tort dodany do koszyka", {
       description: "Możesz kontynuować tworzenie kolejnego tortu",
     });
-    // Navigate back to the first step
-    router.push("/kreator/wyglad");
+    const previousStepUrl = editId
+      ? `/kreator/wyglad?edit=${editId}`
+      : "/kreator/wyglad";
+    router.push(previousStepUrl);
   };
 
-  // Add cake to cart and proceed to checkout
   const handleAddToCartAndCheckout = () => {
-    addToCart();
+    handleAddToCart();
     router.push("/koszyk");
   };
 
-  // Add custom cake to cart
-  const addToCart = () => {
-    // Load taste data
-    let tastePreviewData;
-    const tasteData = localStorage.getItem("cake-taste-data");
-    if (tasteData) {
-      try {
-        const parsedData = JSON.parse(tasteData);
-        tastePreviewData = parsedData.tastePreview;
-      } catch (e) {
-        console.error("Failed to parse taste data", e);
-      }
-    }
+  const handleAddToCart = () => {
+    const selectedOption = getSelectedPackagingOption();
+    const currentPackagingPrice = selectedOption.price;
+    const currentTotalPrice =
+      basePrice + appearancePrice + currentPackagingPrice;
 
-    // Load appearance data
-    let appearancePreviewData;
-    let customText;
-    const appearanceData = localStorage.getItem("cake-appearance-data");
-    if (appearanceData) {
-      try {
-        const parsedData = JSON.parse(appearanceData);
-        appearancePreviewData = parsedData.appearancePreview;
-        customText = parsedData.customText;
-      } catch (e) {
-        console.error("Failed to parse appearance data", e);
-      }
-    }
-
-    // Create packaging preview
     const packagingPreviewData = {
-      type: getSelectedPackagingOption().name,
-      size: getSelectedSizeOption().name,
+      type: selectedOption.name,
       giftMessage: giftMessage,
       recipientName: recipientName,
-      imageUrl: getPackagingPreview(),
+      imageUrl: selectedOption.imageUrl,
     };
+    setPackagingPreview(packagingPreviewData, currentPackagingPrice);
 
-    // Create cake item with ALL preview data
-    const customCake: CartItem = {
-      id: uuidv4(),
+    if (!tastePreview || !appearancePreview) {
+      console.error(
+        "Cannot add to cart: Missing taste or appearance preview data in context."
+      );
+      return;
+    }
+
+    const finalCakeData: Partial<CartItem> = {
       name: customText || "Tort niestandardowy",
-      price: calculateTotalPrice(),
-      quantity: 1,
-      // Full previews with complete data
-      tastePreview: tastePreviewData,
-      appearancePreview: appearancePreviewData,
+      price: currentTotalPrice,
+      tastePreview: tastePreview,
+      appearancePreview: appearancePreview,
       packagingPreview: packagingPreviewData,
       customText: customText,
       packagingDetails: {
-        type: getSelectedPackagingOption().name,
-        size: getSelectedSizeOption().name,
-        giftMessage: giftMessage,
-        recipientName: recipientName,
+        type: selectedOption.name,
+        giftMessage: giftMessage || undefined,
+        recipientName: recipientName || undefined,
       },
+      basePrice: basePrice,
+      appearancePrice: appearancePrice,
+      packagingPrice: currentPackagingPrice,
     };
 
-    // Save complete cake to cart
-    addCustomCake(customCake);
+    if (editId) {
+      updateItem(editId, finalCakeData);
+    } else {
+      const newItem: CartItem = {
+        id: uuidv4(),
+        quantity: 1,
+        name: finalCakeData.name!,
+        price: finalCakeData.price!,
+        tastePreview: finalCakeData.tastePreview,
+        appearancePreview: finalCakeData.appearancePreview,
+        packagingPreview: finalCakeData.packagingPreview,
+        customText: finalCakeData.customText,
+        packagingDetails: finalCakeData.packagingDetails,
+        basePrice: finalCakeData.basePrice,
+        appearancePrice: finalCakeData.appearancePrice,
+        packagingPrice: finalCakeData.packagingPrice,
+      };
+      addCustomCake(newItem);
+    }
 
-    // For debugging - log the data being sent to cart
-    console.log("Adding cake to cart with previews:", {
-      taste: tastePreviewData,
-      appearance: appearancePreviewData,
-      packaging: packagingPreviewData,
-    });
-
-    // Clean up builder data from localStorage once cake is added to cart
     localStorage.removeItem("cake-appearance-data");
     localStorage.removeItem("cake-taste-data");
+    resetBuilder();
   };
 
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Preview */}
         <div className="lg:col-span-1">
           <Card className="sticky top-4">
             <CardHeader>
@@ -301,10 +234,7 @@ export function BuilderPackaging({
               <div className="grid grid-cols-3 gap-2 w-full">
                 <div className="aspect-square relative rounded border overflow-hidden">
                   <img
-                    src={
-                      cakeData.appearancePreview ||
-                      "/cakes/default-appearance.jpg"
-                    }
+                    src={appearancePreview || "/cakes/default-appearance.jpg"}
                     alt="Appearance preview"
                     className="object-cover w-full h-full"
                   />
@@ -314,7 +244,7 @@ export function BuilderPackaging({
                 </div>
                 <div className="aspect-square relative rounded border overflow-hidden">
                   <img
-                    src={cakeData.tastePreview || "/cakes/default-taste.jpg"}
+                    src={tastePreview || "/cakes/default-taste.jpg"}
                     alt="Taste preview"
                     className="object-cover w-full h-full"
                   />
@@ -341,10 +271,6 @@ export function BuilderPackaging({
                     <CheckCircle2 className="h-3 w-3" />
                     Opakowanie: {getSelectedPackagingOption().name}
                   </li>
-                  <li className="flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Rozmiar: {getSelectedSizeOption().name}
-                  </li>
                   {giftMessage && (
                     <li className="flex items-center gap-1">
                       <CheckCircle2 className="h-3 w-3" />Z dedykacją
@@ -353,13 +279,12 @@ export function BuilderPackaging({
                 </ul>
               </div>
 
-              {/* Price Breakdown */}
               <div className="mt-4 w-full space-y-2">
                 <div className="text-sm font-medium">Price breakdown:</div>
                 <div className="space-y-1">
                   <div className="flex justify-between text-sm">
                     <span>Cake base (layers):</span>
-                    <span>{tastePrice.toFixed(2)} zł</span>
+                    <span>{basePrice.toFixed(2)} zł</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Decorations:</span>
@@ -373,26 +298,12 @@ export function BuilderPackaging({
                       {getSelectedPackagingOption().price.toFixed(2)} zł
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Size ({getSelectedSizeOption().name}):</span>
-                    <span>
-                      {getSelectedSizeOption().additionalPrice === 0
-                        ? "No charge"
-                        : `${
-                            getSelectedSizeOption().additionalPrice > 0
-                              ? "+"
-                              : ""
-                          }${getSelectedSizeOption().additionalPrice.toFixed(
-                            2
-                          )} zł`}
-                    </span>
-                  </div>
                 </div>
 
                 <div className="flex justify-between items-center font-medium pt-2 border-t">
                   <span>Cena końcowa:</span>
                   <span className="text-lg">
-                    {calculateTotalPrice().toFixed(2)} zł
+                    {calculateCurrentTotalPrice().toFixed(2)} zł
                   </span>
                 </div>
               </div>
@@ -400,7 +311,6 @@ export function BuilderPackaging({
           </Card>
         </div>
 
-        {/* Right Column - Options */}
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
@@ -416,7 +326,6 @@ export function BuilderPackaging({
                   <TabsTrigger value="message">Wiadomość</TabsTrigger>
                 </TabsList>
 
-                {/* Packaging Tab */}
                 <TabsContent value="packaging">
                   <div className="space-y-6">
                     <div>
@@ -482,70 +391,9 @@ export function BuilderPackaging({
                         ))}
                       </RadioGroup>
                     </div>
-
-                    <div>
-                      <h3 className="text-lg font-medium mb-3">
-                        Wybierz rozmiar pudełka
-                      </h3>
-                      <RadioGroup
-                        value={selectedSize}
-                        onValueChange={setSelectedSize}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-3"
-                      >
-                        {boxSizeOptions.map((option) => (
-                          <div
-                            key={option.id}
-                            className="flex items-start space-x-2"
-                          >
-                            <RadioGroupItem
-                              value={option.id}
-                              id={`size-${option.id}`}
-                              className="mt-1"
-                            />
-                            <Label
-                              htmlFor={`size-${option.id}`}
-                              className="flex-1 cursor-pointer"
-                            >
-                              <Card
-                                className={
-                                  selectedSize === option.id
-                                    ? "ring-2 ring-primary"
-                                    : ""
-                                }
-                              >
-                                <CardContent className="p-3">
-                                  <div className="font-medium">
-                                    {option.name}
-                                  </div>
-                                  <p className="text-sm text-muted-foreground">
-                                    {option.description}
-                                  </p>
-                                  <div className="text-sm mt-1">
-                                    {option.additionalPrice === 0 ? (
-                                      <span className="text-green-600">
-                                        Bez dopłaty
-                                      </span>
-                                    ) : option.additionalPrice < 0 ? (
-                                      <span className="text-green-600">
-                                        {option.additionalPrice.toFixed(2)} zł
-                                      </span>
-                                    ) : (
-                                      <span>
-                                        +{option.additionalPrice.toFixed(2)} zł
-                                      </span>
-                                    )}
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </Label>
-                          </div>
-                        ))}
-                      </RadioGroup>
-                    </div>
                   </div>
                 </TabsContent>
 
-                {/* Message Tab */}
                 <TabsContent value="message">
                   <div className="space-y-6">
                     <div>
@@ -599,22 +447,27 @@ export function BuilderPackaging({
 
             <CardFooter className="flex flex-col sm:flex-row gap-3 pt-6">
               <Button
-                variant="default"
+                variant="outline"
                 size="lg"
                 className="w-full sm:w-auto"
                 onClick={handleAddToCartAndContinue}
               >
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Dodaj do koszyka i stwórz nowy tort
+                <Plus className="mr-2 h-4 w-4" />
+                {editId
+                  ? "Zaktualizuj i stwórz kolejny tort"
+                  : "Zapisz i stwórz kolejny tort"}
               </Button>
 
               <Button
-                variant="outline"
+                variant="default"
                 size="lg"
                 className="w-full sm:w-auto"
                 onClick={handleAddToCartAndCheckout}
               >
-                Dodaj do koszyka i przejdź do podsumowania
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                {editId
+                  ? "Zaktualizuj i przejdź do podsumowania"
+                  : "Zapisz i przejdź do podsumowania"}
               </Button>
             </CardFooter>
           </Card>

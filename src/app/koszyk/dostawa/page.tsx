@@ -47,11 +47,8 @@ import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useEffect } from "react";
-import {
-  useCart,
-  CustomerDetails,
-  DeliveryDetails,
-} from "@/context/cart-context";
+import { useCart } from "@/context/cart-context";
+import type { CustomerDetails, DeliveryDetails } from "@/types/cart";
 
 // Form validation schema
 const formSchema = z
@@ -199,7 +196,12 @@ export default function Dostawa() {
       city: deliveryDetails?.address?.city || "",
       zipCode: deliveryDetails?.address?.zipCode || "",
       pickupLocation: deliveryDetails?.pickupLocation || "",
-      deliveryDate: deliveryDetails?.deliveryDate || undefined,
+      deliveryDate:
+        deliveryDetails?.deliveryDate instanceof Date
+          ? deliveryDetails.deliveryDate
+          : deliveryDetails?.deliveryDate
+          ? new Date(deliveryDetails.deliveryDate)
+          : undefined,
       deliveryTime: deliveryDetails?.deliveryTime || "",
       notes: deliveryDetails?.notes || "",
     },
@@ -230,12 +232,10 @@ export default function Dostawa() {
       lastName: data.lastName,
       email: data.email,
       phone: data.phone,
+      companyName:
+        data.customerType === "company" ? data.companyName : undefined,
+      nip: data.customerType === "company" ? data.nip : undefined,
     };
-
-    if (data.customerType === "company") {
-      customerData.companyName = data.companyName;
-      customerData.nip = data.nip;
-    }
 
     // Save delivery details
     const deliveryData: DeliveryDetails = {
@@ -243,40 +243,23 @@ export default function Dostawa() {
       deliveryDate: data.deliveryDate,
       deliveryTime: data.deliveryTime,
       notes: data.notes,
+      address:
+        data.deliveryMethod === "shipping"
+          ? {
+              street: data.street || "",
+              buildingNumber: data.buildingNumber || "",
+              apartmentNumber: data.apartmentNumber,
+              city: data.city || "",
+              zipCode: data.zipCode || "",
+            }
+          : undefined,
+      pickupLocation:
+        data.deliveryMethod === "pickup" ? data.pickupLocation : undefined,
     };
 
-    if (data.deliveryMethod === "shipping") {
-      deliveryData.address = {
-        street: data.street || "",
-        buildingNumber: data.buildingNumber || "",
-        apartmentNumber: data.apartmentNumber,
-        city: data.city || "",
-        zipCode: data.zipCode || "",
-      };
-    } else {
-      deliveryData.pickupLocation = data.pickupLocation;
-    }
-
-    // Update context with a safety check
-    if (typeof setCustomerDetails === "function") {
-      setCustomerDetails(customerData);
-    } else {
-      // Fallback: Store in localStorage if context function isn't available
-      console.warn(
-        "setCustomerDetails is not available, using localStorage instead"
-      );
-      localStorage.setItem("customer-details", JSON.stringify(customerData));
-    }
-
-    if (typeof setDeliveryDetails === "function") {
-      setDeliveryDetails(deliveryData);
-    } else {
-      // Fallback: Store in localStorage if context function isn't available
-      console.warn(
-        "setDeliveryDetails is not available, using localStorage instead"
-      );
-      localStorage.setItem("delivery-details", JSON.stringify(deliveryData));
-    }
+    // Update context directly
+    setCustomerDetails(customerData);
+    setDeliveryDetails(deliveryData);
 
     // Navigate to summary
     router.push("/koszyk/podsumowanie");
@@ -656,7 +639,13 @@ export default function Dostawa() {
                                 }`}
                               >
                                 {field.value ? (
-                                  format(field.value, "PPP", { locale: pl })
+                                  format(
+                                    field.value instanceof Date
+                                      ? field.value
+                                      : new Date(field.value),
+                                    "PPP",
+                                    { locale: pl }
+                                  )
                                 ) : (
                                   <span>Wybierz datę</span>
                                 )}

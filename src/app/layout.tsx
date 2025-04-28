@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ClientProviders } from "@/components/providers/client-providers";
 import { Toaster } from "sonner";
+import { BuilderProvider } from "@/context/builder-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +37,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ClientProviders>{children}</ClientProviders>
+          <BuilderProvider>
+            <ClientProviders>{children}</ClientProviders>
+          </BuilderProvider>
         </ThemeProvider>
         <Toaster richColors position="top-center" />
       </body>

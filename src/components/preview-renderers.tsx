@@ -1,395 +1,192 @@
 "use client";
 
-import React from "react";
+import { CakeLayer, CakeShape } from "@/context/builder-context";
 
-// Types for the preview data
-interface TastePreviewData {
-  layers?: Array<{
-    id: string;
-    name: string;
-    type: string;
-    color: string;
-    height: number;
-  }>;
-  imageUrl?: string;
-}
-
-interface TextElement {
-  id: string;
-  text: string;
-  color: string;
-  fontSize: number;
-  fontFamily: string;
-  x: number;
-  y: number;
-}
-
-interface ImageElement {
-  id: string;
-  src: string;
-  x: number;
-  y: number;
-  width: number;
-  rotation: number;
-}
-
-interface AppearancePreviewData {
-  shape?: {
-    id: string;
-    name: string;
-    type: string;
-    path?: string;
+// Define types for the preview components
+export interface TastePreviewProps {
+  data?: {
+    layers?: CakeLayer[];
   };
-  baseColor?: string;
-  texts?: TextElement[];
-  images?: ImageElement[];
-  imageUrl?: string;
 }
 
-interface PackagingPreviewData {
-  type?: string;
-  size?: string;
-  giftMessage?: string;
-  recipientName?: string;
-  imageUrl?: string;
+export interface AppearancePreviewProps {
+  data?: {
+    shape?: CakeShape;
+    baseColor?: string;
+    texts?: any[];
+    images?: any[];
+  };
 }
 
-// Taste preview component that renders cake layers from the builder
-export function TastePreview({ data }: { data: TastePreviewData | undefined }) {
-  // First check if valid layers data exists
-  if (data?.layers && data.layers.length > 0) {
+export interface PackagingPreviewProps {
+  data?: {
+    type?: string;
+    size?: string;
+    imageUrl?: string;
+    giftMessage?: string;
+    recipientName?: string;
+  };
+}
+
+// Taste preview component
+export function TastePreview({ data }: TastePreviewProps) {
+  // If no data, return placeholder
+  if (!data || !data.layers || data.layers.length === 0) {
     return (
-      <div className="w-full h-full flex flex-col-reverse justify-end overflow-hidden">
-        {data.layers.map((layer, index) => (
-          <div
-            key={layer.id || index}
-            style={{
-              backgroundColor: layer.color || "#ccc",
-              height: `${Math.max(5, Math.min(layer.height || 10, 30))}%`,
-              width: "100%",
-              marginBottom: "1px",
-            }}
-            title={layer.name}
-            className="relative"
-          >
-            <span className="absolute left-1 text-[6px] truncate max-w-full opacity-70">
-              {layer.name}
-            </span>
-          </div>
-        ))}
+      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+        <span className="text-xs text-gray-400">No layers</span>
       </div>
     );
   }
 
-  // If we have an image URL, show it
-  if (data?.imageUrl) {
-    return (
-      <img
-        src={data.imageUrl}
-        alt="Taste preview"
-        className="object-cover w-full h-full"
-      />
-    );
-  }
+  console.log("TastePreview rendering with data:", data);
 
-  // Fallback
   return (
-    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-      <span className="text-xs text-gray-500">Taste</span>
-    </div>
-  );
-}
-
-// Appearance preview component that renders cake appearance from the builder
-export function AppearancePreview({
-  data,
-}: {
-  data: AppearancePreviewData | undefined;
-}) {
-  // First check if we have an image URL
-  if (data?.imageUrl) {
-    return (
-      <img
-        src={data.imageUrl}
-        alt="Appearance preview"
-        className="object-cover w-full h-full"
-      />
-    );
-  }
-
-  // If we have shape and color data, render it
-  if (data?.shape && data.baseColor) {
-    const textElements = data.texts || [];
-    const imageElements = data.images || [];
-
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        {/* Render the shape based on type */}
-        {data.shape.type === "circle" && (
-          <div
-            className="rounded-full relative"
-            style={{
-              width: "85%",
-              height: "85%",
-              backgroundColor: data.baseColor,
-            }}
-          >
-            {/* Render text elements */}
-            {textElements.map((text, index) => (
-              <div
-                key={text.id || `text-${index}`}
-                style={{
-                  position: "absolute",
-                  color: text.color || "#000000",
-                  fontSize: `${Math.min(Math.max(6, text.fontSize / 4), 10)}px`,
-                  fontFamily: text.fontFamily || "sans-serif",
-                  left: `${text.x}%`,
-                  top: `${text.y}%`,
-                  transform: "translate(-50%, -50%)",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  maxWidth: "90%",
-                }}
-              >
-                {text.text}
-              </div>
-            ))}
-
-            {/* Render image elements */}
-            {imageElements.map((image, index) => {
-              // Log image data for debugging
-              console.log(
-                `Rendering image ${index}:`,
-                image.src ? image.src.substring(0, 30) + "..." : "undefined"
-              );
-
-              return (
-                <img
-                  key={image.id || `img-${index}`}
-                  src={image.src}
-                  alt="Decoration"
-                  style={{
-                    position: "absolute",
-                    width: `${Math.min(image.width / 3, 40)}%`,
-                    left: `${image.x}%`,
-                    top: `${image.y}%`,
-                    transform: `translate(-50%, -50%) rotate(${
-                      image.rotation || 0
-                    }deg)`,
-                  }}
-                  onError={(e) => {
-                    console.error("Failed to load image:", e);
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-              );
-            })}
-          </div>
-        )}
-
-        {data.shape.type === "square" && (
-          <div
-            className="rounded-md relative"
-            style={{
-              width: "85%",
-              height: "85%",
-              backgroundColor: data.baseColor,
-            }}
-          >
-            {/* Text elements similar to above */}
-            {textElements.map((text, index) => (
-              <div
-                key={text.id || `text-${index}`}
-                style={{
-                  position: "absolute",
-                  color: text.color || "#000000",
-                  fontSize: `${Math.min(Math.max(6, text.fontSize / 4), 10)}px`,
-                  fontFamily: text.fontFamily || "sans-serif",
-                  left: `${text.x}%`,
-                  top: `${text.y}%`,
-                  transform: "translate(-50%, -50%)",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  maxWidth: "90%",
-                }}
-              >
-                {text.text}
-              </div>
-            ))}
-
-            {/* Render image elements */}
-            {imageElements.map((image, index) => {
-              console.log(
-                `Rendering image ${index}:`,
-                image.src ? image.src.substring(0, 30) + "..." : "undefined"
-              );
-
-              return (
-                <img
-                  key={image.id || `img-${index}`}
-                  src={image.src}
-                  alt="Decoration"
-                  style={{
-                    position: "absolute",
-                    width: `${Math.min(image.width / 3, 40)}%`,
-                    left: `${image.x}%`,
-                    top: `${image.y}%`,
-                    transform: `translate(-50%, -50%) rotate(${
-                      image.rotation || 0
-                    }deg)`,
-                  }}
-                  onError={(e) => {
-                    console.error("Failed to load image:", e);
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-              );
-            })}
-          </div>
-        )}
-
-        {(data.shape.type === "heart" || data.shape.type === "triangle") &&
-          data.shape.path && (
-            <svg
-              width="100%"
-              height="100%"
-              viewBox="0 0 24 24"
-              className="relative"
-            >
-              <path d={data.shape.path} fill={data.baseColor} />
-              {/* We can't easily add text directly in SVG for this simple preview */}
-              {/* Instead show a truncated version of the first text if any */}
-              {textElements.length > 0 && (
-                <text
-                  x="12"
-                  y="12"
-                  textAnchor="middle"
-                  fontSize="8"
-                  fill={textElements[0].color}
-                >
-                  {textElements[0].text.substring(0, 12)}
-                </text>
-              )}
-
-              {/* Render image elements */}
-              {imageElements.map((image, index) => {
-                console.log(
-                  `Rendering image ${index}:`,
-                  image.src ? image.src.substring(0, 30) + "..." : "undefined"
-                );
-
-                return (
-                  <image
-                    key={image.id || `img-${index}`}
-                    href={image.src}
-                    x={image.x}
-                    y={image.y}
-                    width={Math.min(image.width / 3, 40)}
-                    transform={`rotate(${image.rotation || 0})`}
-                    onError={(e) => {
-                      console.error("Failed to load image:", e);
-                    }}
-                  />
-                );
-              })}
-            </svg>
-          )}
-      </div>
-    );
-  }
-
-  // If we only have images without shape data
-  if (data?.images && data.images.length > 0) {
-    return (
-      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-        <img
-          src={data.images[0].src}
-          alt="Cake decoration"
-          className="max-w-full max-h-full object-contain"
-          onError={(e) => {
-            console.error("Failed to load standalone image");
-            e.currentTarget.style.display = "none";
-            e.currentTarget.parentElement!.innerHTML =
-              '<div class="text-xs">Image</div>';
+    <div className="w-full h-full flex flex-col justify-end bg-gray-50">
+      {/* Render layers from bottom to top */}
+      {[...data.layers].reverse().map((layer, index) => (
+        <div
+          key={layer.id || index}
+          style={{
+            backgroundColor: layer.color || "#ddd",
+            height: `${Math.max(5, Math.min(30, layer.height || 10))}%`,
           }}
+          className="w-full"
         />
-      </div>
-    );
-  }
-
-  // Simpler fallback for when we only know there were decorations
-  if (
-    (data?.texts && data.texts.length > 0) ||
-    (data?.images && data.images.length > 0)
-  ) {
-    return (
-      <div className="w-full h-full bg-gray-100 flex items-center justify-center p-1">
-        {data?.texts && data.texts.length > 0 ? (
-          <span
-            className="text-xs text-center truncate max-w-full"
-            style={{ color: data.texts[0].color }}
-          >
-            {data.texts[0].text}
-          </span>
-        ) : (
-          <span className="text-xs text-gray-600">Decorated cake</span>
-        )}
-      </div>
-    );
-  }
-
-  // Fallback
-  return (
-    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-      <span className="text-xs text-gray-500">Appearance</span>
+      ))}
     </div>
   );
 }
 
-// Packaging preview component that renders cake packaging from the builder
-export function PackagingPreview({
-  data,
-}: {
-  data: PackagingPreviewData | undefined;
-}) {
-  // If we have an image URL, show it
-  if (data?.imageUrl) {
+// Appearance preview component
+export function AppearancePreview({ data }: AppearancePreviewProps) {
+  // If no data, return placeholder
+  if (!data || !data.shape) {
     return (
-      <img
-        src={data.imageUrl}
-        alt="Packaging preview"
-        className="object-cover w-full h-full"
-      />
+      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+        <span className="text-xs text-gray-400">No design</span>
+      </div>
     );
   }
 
-  // If we have packaging type, show it
-  if (data?.type) {
+  console.log("AppearancePreview rendering with data:", {
+    shape: data.shape,
+    baseColor: data.baseColor,
+    textsCount: data.texts?.length,
+    imagesCount: data.images?.length,
+  });
+
+  // Render cake shape with base color
+  const renderShape = () => {
+    const shape = data.shape;
+    const baseColor = data.baseColor || "#FFFFFF";
+
+    if (!shape) return null;
+
+    switch (shape.type) {
+      case "circle":
+        return (
+          <div
+            className="rounded-full"
+            style={{
+              width: "90%",
+              height: "90%",
+              backgroundColor: baseColor,
+              margin: "5%",
+            }}
+          />
+        );
+      case "square":
+        return (
+          <div
+            className="rounded-md"
+            style={{
+              width: "90%",
+              height: "90%",
+              backgroundColor: baseColor,
+              margin: "5%",
+            }}
+          />
+        );
+      case "heart":
+      case "triangle":
+        if (shape.path) {
+          return (
+            <div className="w-full h-full flex items-center justify-center">
+              <svg width="90%" height="90%" viewBox="0 0 24 24">
+                <path d={shape.path} fill={baseColor} />
+              </svg>
+            </div>
+          );
+        }
+      default:
+        return (
+          <div
+            className="rounded-full"
+            style={{
+              width: "90%",
+              height: "90%",
+              backgroundColor: baseColor,
+              margin: "5%",
+            }}
+          />
+        );
+    }
+  };
+
+  return (
+    <div className="w-full h-full bg-gray-50 flex items-center justify-center">
+      {renderShape()}
+      {/* We're not rendering texts and images in this simplified preview */}
+    </div>
+  );
+}
+
+// Packaging preview component
+export function PackagingPreview({ data }: PackagingPreviewProps) {
+  // If no data, return placeholder
+  if (!data) {
     return (
-      <div className="w-full h-full bg-amber-50 flex flex-col items-center justify-center p-1">
-        <div className="text-[8px] font-medium text-center">{data.type}</div>
-        {data.size && (
-          <div className="text-[6px] text-muted-foreground text-center">
-            {data.size}
-          </div>
-        )}
+      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+        <span className="text-xs text-gray-400">No packaging</span>
+      </div>
+    );
+  }
+
+  console.log("PackagingPreview rendering with data:", data);
+
+  // Show packaging image if available
+  if (data.imageUrl) {
+    return (
+      <div className="w-full h-full relative">
+        <img
+          src={data.imageUrl}
+          alt={data.type || "Packaging"}
+          className="object-cover w-full h-full"
+        />
         {data.giftMessage && (
-          <div className="mt-1 flex items-center">
-            <span className="bg-pink-100 rounded-full w-3 h-3 flex items-center justify-center">
-              🎁
-            </span>
+          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs py-1 text-center">
+            Gift 🎁
           </div>
         )}
       </div>
     );
   }
 
-  // Fallback
+  // Otherwise show packaging type and size
   return (
-    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-      <span className="text-xs text-gray-500">Package</span>
+    <div className="w-full h-full flex flex-col items-center justify-center p-2 bg-gray-100">
+      <div className="text-xs font-medium text-center">
+        {data.type || "Box"}
+      </div>
+      <div className="text-[10px] text-gray-500 text-center">
+        {data.size || "Standard"}
+      </div>
+      {data.giftMessage && (
+        <div className="mt-1 text-[10px] bg-pink-100 text-pink-800 px-1 rounded">
+          Gift 🎁
+        </div>
+      )}
     </div>
   );
 }

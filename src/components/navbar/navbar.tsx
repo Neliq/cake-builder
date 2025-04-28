@@ -9,9 +9,15 @@ import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
 
 const Navbar = () => {
   const { itemCount } = useCart();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <div className="bg-muted">
@@ -32,7 +38,7 @@ const Navbar = () => {
                 className="hidden sm:inline-flex relative"
               >
                 <ShoppingCart />
-                {itemCount > 0 && (
+                {isClient && itemCount > 0 && (
                   <Badge
                     variant="destructive"
                     className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center p-0 text-xs rounded-full"

@@ -44,7 +44,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useRouter } from "next/navigation"; // Updated import for App Router
+import { useRouter, useSearchParams } from "next/navigation"; // Updated import for App Router
+import { useBuilder } from "@/context/builder-context"; // Import the builder context
 
 // Define types for cake layers and addons
 type CakeLayer = {
@@ -291,12 +292,22 @@ interface CakeBuilderProps {
 export default function CakeBuilder({
   importedLayerNames,
 }: CakeBuilderProps = {}) {
+  const { tastePreview } = useBuilder(); // Get tastePreview from context
   const [cakeLayers, setCakeLayers] = useState<CakeLayer[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [alertOpen, setAlertOpen] = useState(false);
   const [validationMessage, setValidationMessage] = useState("");
   const [validationAttempted, setValidationAttempted] = useState(false);
+  const [layerLimitReached, setLayerLimitReached] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams(); // Get search params
+  const editId = searchParams.get("edit"); // Get the edit ID if present
+
+  // Maximum number of layers
+  const MAX_LAYERS = 12;
+
+  // Get the builder context
+  const { setTastePreview } = useBuilder();
 
   // Find the active layer for the drag overlay
   const activeLayer = activeId
@@ -313,9 +324,29 @@ export default function CakeBuilder({
     );
   };
 
-  // Process imported layer names when component mounts or importedLayerNames changes
+  // Process imported layer names or initialize from context
   useEffect(() => {
-    if (importedLayerNames && importedLayerNames.length > 0) {
+    // Initialize layers from context if available (priority)
+    if (tastePreview?.layers && tastePreview.layers.length > 0) {
+      console.log(
+        "Builder: Initializing layers from context",
+        tastePreview.layers
+      );
+      // Map context layers to the component's state structure if needed
+      // Ensure IDs are unique if context doesn't guarantee it for dnd-kit
+      setCakeLayers(
+        tastePreview.layers.map((layer) => ({
+          ...layer,
+          id: layer.id || `ctx_${Math.random()}`,
+        }))
+      );
+    }
+    // Fallback to importedLayerNames if context is empty (e.g., initial load before context is populated by edit)
+    else if (importedLayerNames && importedLayerNames.length > 0) {
+      console.log(
+        "Builder: Initializing layers from props",
+        importedLayerNames
+      );
       // Convert layer names to full layer objects
       const importedLayers: CakeLayer[] = importedLayerNames
         .map((layerName) => {
@@ -339,8 +370,11 @@ export default function CakeBuilder({
       if (importedLayers.length > 0) {
         setCakeLayers(importedLayers);
       }
+    } else {
+      // If neither context nor props have data, start empty
+      setCakeLayers([]);
     }
-  }, [importedLayerNames]);
+  }, [tastePreview, importedLayerNames]);
 
   // Set up sensors for drag & drop (mouse, touch, keyboard)
   const sensors = useSensors(
@@ -350,22 +384,43 @@ export default function CakeBuilder({
     })
   );
 
-  const addLayer = (addon: Addon) => {
-    setCakeLayers([
-      ...cakeLayers,
+  const addLayer = (
+    addon: Addon,
+    event?: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    // Prevent default button behavior which might cause scroll shifts
+    event?.preventDefault();
+
+    if (cakeLayers.length >= MAX_LAYERS) {
+      setLayerLimitReached(true);
+      // Hide the warning after 3 seconds
+      setTimeout(() => setLayerLimitReached(false), 3000);
+      return;
+    }
+
+    // Add new layers to the beginning of the array (top of cake) instead of the end
+    setCakeLayers((prevLayers) => [
       {
-        id: `layer_${Date.now()}`,
+        id: `layer_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, // Use more unique ID
         name: addon.name,
         type: addon.type,
         color: addon.color,
         height: addon.height,
         price: addon.price,
       },
+      ...prevLayers, // Prepend the new layer
     ]);
+
+    // Blur the button after adding the layer to prevent focus-related scroll shifts
+    if (event?.currentTarget) {
+      event.currentTarget.blur();
+    }
   };
 
   const removeLayer = (layerId: string) => {
-    setCakeLayers(cakeLayers.filter((layer) => layer.id !== layerId));
+    setCakeLayers((prevLayers) =>
+      prevLayers.filter((layer) => layer.id !== layerId)
+    );
   };
 
   // Function to calculate total price
@@ -400,22 +455,26 @@ export default function CakeBuilder({
 
   const hasBottomDough = () => {
     if (cakeLayers.length === 0) return false;
-    return cakeLayers[0].type === "dough";
+    // Check the LAST layer in the array, which is visually the bottom one
+    return cakeLayers[cakeLayers.length - 1].type === "dough";
   };
 
   const hasValidLayerStacking = () => {
     if (cakeLayers.length === 0) return true;
+    // Iterate from top (index 0) to bottom (last index)
     let consecutiveNonDoughLayers = 0;
     for (let i = 0; i < cakeLayers.length; i++) {
       if (cakeLayers[i].type === "dough") {
-        consecutiveNonDoughLayers = 0;
+        consecutiveNonDoughLayers = 0; // Reset counter when a dough layer is found
       } else {
         consecutiveNonDoughLayers++;
         if (consecutiveNonDoughLayers > 2) {
+          // Found more than 2 consecutive non-dough layers
           return false;
         }
       }
     }
+    // If the loop completes without returning false, the stacking is valid
     return true;
   };
 
@@ -462,25 +521,36 @@ export default function CakeBuilder({
     const validation = validateCake();
 
     if (validation.isValid) {
-      // Save cake data including price and layer data for preview
+      // Create the taste preview data, including price
+      const tastePreviewData = {
+        layers: cakeLayers.map((layer) => ({
+          id: layer.id,
+          name: layer.name,
+          type: layer.type,
+          color: layer.color,
+          height: layer.height,
+          price: layer.price, // Ensure price is included here
+        })),
+      };
+
+      // Update the builder context with the taste preview
+      setTastePreview(tastePreviewData, calculateTotalPrice());
+
+      // Also save to localStorage for backward compatibility
       localStorage.setItem(
         "cake-taste-data",
         JSON.stringify({
-          layers: cakeLayers,
+          layers: cakeLayers, // Storing full layers here already includes price
           basePrice: calculateTotalPrice(),
-          tastePreview: {
-            layers: cakeLayers.map((layer) => ({
-              id: layer.id,
-              name: layer.name,
-              type: layer.type,
-              color: layer.color,
-              height: layer.height,
-            })),
-          },
+          tastePreview: tastePreviewData, // Storing the preview object as well
         })
       );
 
-      router.push("/kreator/wyglad");
+      // Construct the next step URL, including the edit parameter if it exists
+      const nextStepUrl = editId
+        ? `/kreator/wyglad?edit=${editId}`
+        : "/kreator/wyglad";
+      router.push(nextStepUrl);
     } else {
       // Show validation error
       setValidationMessage(
@@ -492,298 +562,325 @@ export default function CakeBuilder({
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Kreator Tortu</h1>
+      {/* <h1 className="text-3xl font-bold mb-6">Kreator Tortu</h1> */}
 
       <div className="grid grid-cols-1 gap-8">
         {/* Cake Preview */}
         <div className="bg-muted p-6 rounded-lg">
           <h2 className="text-2xl font-semibold mb-4">Podgląd Tortu</h2>
-          <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4">
-            <div className="flex flex-col items-center w-64 mx-auto">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={[...cakeLayers].reverse().map((layer) => layer.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {cakeLayers.length > 0 ? (
-                    [...cakeLayers]
-                      .reverse()
-                      .map((layer) => (
-                        <SortableCakeLayer
-                          key={layer.id}
-                          layer={layer}
-                          removeLayer={removeLayer}
-                        />
-                      ))
-                  ) : (
-                    <p className="text-gray-400">Zacznij budować swój tort!</p>
-                  )}
-                </SortableContext>
+          {/* Add items-start to prevent columns from stretching vertically */}
+          <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4 items-start">
+            <div className="w-64 mx-auto flex flex-col">
+              {/* Fixed height cake preview area */}
+              {/* Ensure overflow is hidden on the main fixed-height container */}
+              <div className="h-[400px] relative overflow-hidden">
+                {layerLimitReached && (
+                  <div className="absolute top-0 left-0 right-0 z-10 bg-amber-100 text-amber-800 p-2 rounded-md text-center text-sm">
+                    Osiągnięto limit {MAX_LAYERS} warstw!
+                  </div>
+                )}
 
-                {/* Drag overlay to show what's being dragged */}
-                <DragOverlay>
-                  {activeId && activeLayer ? (
-                    <div
-                      className="w-full rounded-sm flex items-center justify-between px-2"
-                      style={{
-                        backgroundColor: activeLayer.color,
-                        height: `${activeLayer.height}px`,
-                        opacity: 0.8,
-                        width: "100%",
-                      }}
+                {/* Container for layers, positioned absolutely to stack from bottom */}
+                {/* Use bottom-0 and padding-bottom to reserve space for the base */}
+                <div className="absolute bottom-0 left-0 right-0 pb-4">
+                  {/* REMOVED flex-col-reverse. Layers now render top-down matching array order. */}
+                  <div className="flex flex-col w-full">
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
                     >
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="w-full h-full"></div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{activeLayer.name}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  ) : null}
-                </DragOverlay>
-              </DndContext>
+                      <SortableContext
+                        items={cakeLayers.map((layer) => layer.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {cakeLayers.length > 0 ? (
+                          cakeLayers.map((layer) => (
+                            <SortableCakeLayer
+                              key={layer.id}
+                              layer={layer}
+                              removeLayer={removeLayer}
+                            />
+                          ))
+                        ) : (
+                          // Placeholder when no layers
+                          <div className="h-[380px] flex items-center justify-center">
+                            <p className="text-gray-400 text-center">
+                              Zacznij budować swój tort!
+                            </p>
+                          </div>
+                        )}
+                      </SortableContext>
 
-              {/* Base plate for cake */}
-              <div className="w-72 h-4 rounded-md bg-gray-300 mt-2"></div>
+                      {/* Drag overlay */}
+                      <DragOverlay>
+                        {activeId && activeLayer ? (
+                          <div
+                            className="w-full rounded-sm flex items-center justify-between px-2"
+                            style={{
+                              backgroundColor: activeLayer.color,
+                              height: `${activeLayer.height}px`,
+                              opacity: 0.8,
+                              width: "100%",
+                            }}
+                          >
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="w-full h-full"></div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{activeLayer.name}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        ) : null}
+                      </DragOverlay>
+                    </DndContext>
+                  </div>
+                </div>
 
-              {/* Continue button */}
-              <div className="mt-8 w-full">
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={handleContinue}
-                  variant="default"
-                >
-                  Przejdź do Następnego Kroku
-                </Button>
+                {/* Base plate for cake - fixed at bottom */}
+                <div className="absolute bottom-0 left-0 right-0 flex justify-center">
+                  <div className="w-72 h-4 rounded-md bg-gray-300"></div>
+                </div>
               </div>
             </div>
 
             {/* Requirements status and Price */}
-            <div className="flex flex-col">
-              <h3 className="text-lg font-medium mb-2">Wymagania</h3>
-              <ul className="space-y-2">
-                {/* At least 3 layers requirement */}
-                <li
-                  className={`flex items-center ${
-                    hasThreeLayers
-                      ? "text-green-500"
-                      : validationAttempted && !hasThreeLayers
-                      ? "text-red-500"
-                      : "text-gray-400"
-                  }`}
-                >
-                  {hasThreeLayers ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2"
-                    >
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
-                  ) : validationAttempted && !hasThreeLayers ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2"
-                    >
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="15" y1="9" x2="9" y2="15"></line>
-                      <line x1="9" y1="9" x2="15" y2="15"></line>
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2"
-                    >
-                      <circle cx="12" cy="12" r="10"></circle>
-                    </svg>
-                  )}
-                  <span>Co najmniej 3 warstwy łącznie</span>
-                </li>
+            <div className="flex flex-col h-fit">
+              {/* Inner container with fixed height and overflow hidden */}
+              <div className="flex flex-col ">
+                <h3 className="text-lg font-medium mb-2">Wymagania</h3>
+                <ul className="space-y-2 bg-white p-4 rounded-md border">
+                  {/* At least 3 layers requirement */}
+                  <li
+                    className={`flex items-center ${
+                      hasThreeLayers
+                        ? "text-green-500"
+                        : validationAttempted && !hasThreeLayers
+                        ? "text-red-500"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    {hasThreeLayers ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mr-2"
+                      >
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                      </svg>
+                    ) : validationAttempted && !hasThreeLayers ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mr-2"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mr-2"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                      </svg>
+                    )}
+                    <span>Co najmniej 3 warstwy łącznie</span>
+                  </li>
 
-                {/* Bottom dough requirement */}
-                <li
-                  className={`flex items-center ${
-                    hasBottomDough()
-                      ? "text-green-500"
-                      : validationAttempted && !hasBottomDough()
-                      ? "text-red-500"
-                      : "text-gray-400"
-                  }`}
-                >
-                  {hasBottomDough() ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2"
-                    >
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
-                  ) : validationAttempted && !hasBottomDough() ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2"
-                    >
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="15" y1="9" x2="9" y2="15"></line>
-                      <line x1="9" y1="9" x2="15" y2="15"></line>
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2"
-                    >
-                      <circle cx="12" cy="12" r="10"></circle>
-                    </svg>
-                  )}
-                  <span>Dolna warstwa musi być ciastem</span>
-                </li>
+                  {/* Bottom dough requirement */}
+                  <li
+                    className={`flex items-center ${
+                      hasBottomDough()
+                        ? "text-green-500"
+                        : validationAttempted && !hasBottomDough()
+                        ? "text-red-500"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    {hasBottomDough() ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mr-2"
+                      >
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                      </svg>
+                    ) : validationAttempted && !hasBottomDough() ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mr-2"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mr-2"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                      </svg>
+                    )}
+                    <span>Dolna warstwa musi być ciastem</span>
+                  </li>
 
-                {/* Layer stacking requirement */}
-                <li
-                  className={`flex items-center ${
-                    hasValidLayerStacking()
-                      ? "text-green-500"
-                      : validationAttempted && !hasValidLayerStacking()
-                      ? "text-red-500"
-                      : "text-gray-400"
-                  }`}
-                >
-                  {hasValidLayerStacking() ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2"
-                    >
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
-                  ) : validationAttempted && !hasValidLayerStacking() ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2"
-                    >
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="15" y1="9" x2="9" y2="15"></line>
-                      <line x1="9" y1="9" x2="15" y2="15"></line>
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2"
-                    >
-                      <circle cx="12" cy="12" r="10"></circle>
-                    </svg>
-                  )}
-                  <span>Maksymalnie 2 warstwy inne niż ciasto pod rząd</span>
-                </li>
-              </ul>
+                  {/* Layer stacking requirement */}
+                  <li
+                    className={`flex items-center ${
+                      hasValidLayerStacking()
+                        ? "text-green-500"
+                        : validationAttempted && !hasValidLayerStacking()
+                        ? "text-red-500"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    {hasValidLayerStacking() ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mr-2"
+                      >
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                      </svg>
+                    ) : validationAttempted && !hasValidLayerStacking() ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mr-2"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mr-2"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                      </svg>
+                    )}
+                    <span>Maksymalnie 2 warstwy inne niż ciasto pod rząd</span>
+                  </li>
+                </ul>
 
-              {/* Price Display */}
-              <div className="mt-6 border-t pt-4">
-                <h3 className="text-lg font-medium mb-2">Rozkład Cen</h3>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                  {cakeLayers.map((layer) => (
-                    <div
-                      key={layer.id}
-                      className="flex justify-between text-sm"
-                    >
-                      <span>{layer.name}</span>
-                      <span>{layer.price.toFixed(2)} zł</span>
+                {/* Price Display container */}
+                <div className="mt-4 border-t pt-4 flex flex-col bg-white p-4 rounded-md border">
+                  <h3 className="text-lg font-medium mb-2 flex-shrink-0">
+                    Rozkład Cen
+                  </h3>
+                  <ScrollArea className="w-full h-[180px]">
+                    <div className="space-y-2 pr-2">
+                      {cakeLayers.map((layer) => (
+                        <div
+                          key={layer.id}
+                          className="flex justify-between text-sm"
+                        >
+                          <span className="mr-2 truncate">{layer.name}</span>
+                          <span className="flex-shrink-0">
+                            {/* Check if price exists before calling toFixed */}
+                            {typeof layer.price === "number"
+                              ? `${layer.price.toFixed(2)} zł`
+                              : "N/A"}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </ScrollArea>
+                  <div className="flex justify-between items-center font-medium mt-4 pt-4 border-t flex-shrink-0">
+                    <span>Cena całkowita:</span>
+                    <span>{calculateTotalPrice().toFixed(2)} zł</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center font-medium mt-4 pt-4 border-t">
-                  <span>Cena Podstawowa:</span>
-                  <span>{calculateTotalPrice().toFixed(2)} zł</span>
+                <div className="mt-4 w-full">
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={handleContinue}
+                    variant="default"
+                  >
+                    Przejdź do Następnego Kroku
+                  </Button>
                 </div>
               </div>
-
-              {cakeLayers.length === 0 && (
-                <p className="text-sm text-muted-foreground mt-4">
-                  Dodaj warstwy, aby zacząć budować tort
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -805,31 +902,31 @@ export default function CakeBuilder({
               (tabValue) => (
                 <TabsContent key={tabValue} value={tabValue}>
                   <ScrollArea className="w-full">
-                    <div className="flex flex-row gap-4 pb-4 w-max p-2">
+                    <div className="flex flex-row gap-4 w-max p-2">
                       {addons
                         .filter((addon) => addon.type === tabValue)
                         .map((addon) => (
                           <Card
                             key={addon.id}
-                            className="min-w-[100px] w-[120px] shrink-0"
+                            className="min-w-[100px] w-[120px] shrink-0 py-2"
                           >
-                            <CardHeader className="p-2">
+                            <CardHeader className="px-2">
                               <CardTitle className="text-xs text-center break-words min-h-[32px]">
                                 {addon.name}
                               </CardTitle>
                             </CardHeader>
-                            <CardContent className="p-2">
+                            <CardContent className="px-2">
                               <div
-                                className="w-full h-12 rounded aspect-square"
+                                className="w-full h-6 rounded aspect-square"
                                 style={{ backgroundColor: addon.color }}
                               ></div>
                               <div className="text-center mt-2 text-sm font-medium">
                                 {addon.price.toFixed(2)} zł
                               </div>
                             </CardContent>
-                            <CardFooter className="p-2 pt-0">
+                            <CardFooter className="px-2 pt-0">
                               <Button
-                                onClick={() => addLayer(addon)}
+                                onClick={(e) => addLayer(addon, e)} // Pass the event object
                                 size="sm"
                                 className="w-full text-xs"
                               >

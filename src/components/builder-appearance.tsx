@@ -26,18 +26,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useBuilder } from "@/context/builder-context";
 
 // Define types for decorative elements
 type CakeShape = {
   id: string;
   name: string;
   type: "circle" | "square" | "rectangle" | "heart" | "triangle";
-  path?: string; // SVG path for custom shapes
-  aspectRatio?: number; // For non-square shapes
+  path?: string;
+  aspectRatio?: number;
 };
 
-// Update TextElement to include price
 type TextElement = {
   id: string;
   text: string;
@@ -46,10 +46,9 @@ type TextElement = {
   fontFamily: string;
   x: number;
   y: number;
-  price: number; // Add price field
+  price: number;
 };
 
-// Update ImageElement to include price
 type ImageElement = {
   id: string;
   src: string;
@@ -57,10 +56,9 @@ type ImageElement = {
   y: number;
   width: number;
   rotation: number;
-  price: number; // Add price field
+  price: number;
 };
 
-// Define appearance state
 type CakeAppearance = {
   shape: CakeShape;
   baseColor: string;
@@ -68,7 +66,6 @@ type CakeAppearance = {
   images: ImageElement[];
 };
 
-// Sample data for cake shapes
 const cakeShapes: CakeShape[] = [
   {
     id: "circle",
@@ -94,7 +91,6 @@ const cakeShapes: CakeShape[] = [
   },
 ];
 
-// Sample data for colors
 const baseColors = [
   { id: "white", name: "Biały", value: "#FFFFFF" },
   { id: "cream", name: "Kremowy", value: "#FFF8DC" },
@@ -104,20 +100,17 @@ const baseColors = [
   { id: "mint", name: "Miętowy", value: "#98FB98" },
 ];
 
-// Define pricing constants
 const PRICING = {
   TEXT_BASE: 4.99,
-  TEXT_SIZE_FACTOR: 0.1, // Additional cost per font size unit above 20px
+  TEXT_SIZE_FACTOR: 0.1,
   IMAGE_BASE: 7.99,
-  IMAGE_SIZE_FACTOR: 0.05, // Additional cost per width unit above 50px
+  IMAGE_SIZE_FACTOR: 0.05,
   SHAPE_PREMIUM: {
-    // Additional costs for premium shapes
     heart: 5.99,
     triangle: 3.99,
   },
 };
 
-// Draggable text element component
 const DraggableText = ({
   element,
   updateElement,
@@ -135,7 +128,6 @@ const DraggableText = ({
   const elementPos = useRef({ x: element.x, y: element.y });
   const startFontSize = useRef(element.fontSize);
 
-  // Regular drag functionality
   const handleDragStart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -169,7 +161,6 @@ const DraggableText = ({
     document.addEventListener("mouseup", handleMouseUp);
   };
 
-  // Resize functionality
   const handleResizeStart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -182,8 +173,6 @@ const DraggableText = ({
       e.stopPropagation();
 
       const dx = e.clientX - startPos.current.x;
-      // Calculate new font size based on drag distance
-      // Using a scaling factor to make the resize feel natural
       const newSize = Math.max(12, startFontSize.current + dx * 0.1);
 
       updateElement(element.id, {
@@ -227,7 +216,6 @@ const DraggableText = ({
     >
       {element.text}
 
-      {/* Delete button */}
       {isSelected && (
         <button
           className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center z-10"
@@ -240,7 +228,6 @@ const DraggableText = ({
         </button>
       )}
 
-      {/* Resize handle */}
       {isSelected && (
         <div
           className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 rounded-full cursor-se-resize"
@@ -252,7 +239,6 @@ const DraggableText = ({
   );
 };
 
-// Draggable image element component
 const DraggableImage = ({
   element,
   updateElement,
@@ -270,7 +256,6 @@ const DraggableImage = ({
   const elementPos = useRef({ x: element.x, y: element.y });
   const startWidth = useRef(element.width);
 
-  // Regular drag functionality
   const handleDragStart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -278,7 +263,6 @@ const DraggableImage = ({
     startPos.current = { x: e.clientX, y: e.clientY };
     elementPos.current = { x: element.x, y: element.y };
 
-    // Set as selected element
     setSelectedElement(element.id);
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -305,7 +289,6 @@ const DraggableImage = ({
     document.addEventListener("mouseup", handleMouseUp);
   };
 
-  // Image resize functionality
   const handleResizeStart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -318,8 +301,6 @@ const DraggableImage = ({
       e.stopPropagation();
 
       const dx = e.clientX - startPos.current.x;
-      // Calculate new width based on drag distance
-      // Using a scaling factor to make the resize feel natural
       const newWidth = Math.max(30, startWidth.current + dx);
 
       updateElement(element.id, {
@@ -360,7 +341,6 @@ const DraggableImage = ({
         style={{ width: `${element.width}px` }}
       />
 
-      {/* Delete button */}
       {isSelected && (
         <button
           className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center z-10"
@@ -373,7 +353,6 @@ const DraggableImage = ({
         </button>
       )}
 
-      {/* Add resize handle for images */}
       {isSelected && (
         <div
           className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 rounded-full cursor-se-resize"
@@ -386,13 +365,18 @@ const DraggableImage = ({
 };
 
 export default function CakeAppearanceBuilder() {
-  // Get base cake price from previous step
   const [baseCakePrice, setBaseCakePrice] = useState<number>(0);
 
-  // Default cake appearance
+  const {
+    setAppearancePreview,
+    basePrice,
+    appearancePreview: contextAppearancePreview,
+    customText: contextCustomText,
+  } = useBuilder();
+
   const [appearance, setAppearance] = useState<CakeAppearance>({
-    shape: cakeShapes[0], // Default circle
-    baseColor: baseColors[0].value, // Default white
+    shape: cakeShapes[0],
+    baseColor: baseColors[0].value,
     texts: [],
     images: [],
   });
@@ -408,51 +392,63 @@ export default function CakeAppearanceBuilder() {
 
   const cakePreviewRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
 
-  // Apply cake shape
-  const setShape = (shape: CakeShape) => {
-    setAppearance((prev) => ({
-      ...prev,
-      shape,
-    }));
-  };
-
-  // Apply cake base color
-  const setBaseColor = (color: string) => {
-    setAppearance((prev) => ({
-      ...prev,
-      baseColor: color,
-    }));
-  };
-
-  // Load cake data from previous step
   useEffect(() => {
-    const savedData = localStorage.getItem("cake-taste-data");
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        if (parsedData.basePrice) {
-          setBaseCakePrice(parsedData.basePrice);
+    if (contextAppearancePreview) {
+      setAppearance({
+        shape: contextAppearancePreview.shape || cakeShapes[0],
+        baseColor: contextAppearancePreview.baseColor || baseColors[0].value,
+        texts: (contextAppearancePreview.texts || []).map((text) => ({
+          ...text,
+          price: calculateTextPrice(text.fontSize),
+        })),
+        images: (contextAppearancePreview.images || []).map((image) => ({
+          ...image,
+          price: calculateImagePrice(image.width),
+        })),
+      });
+    } else {
+      setAppearance({
+        shape: cakeShapes[0],
+        baseColor: baseColors[0].value,
+        texts: [],
+        images: [],
+      });
+      setNewText("");
+      setSelectedColor("#000000");
+    }
+  }, [contextAppearancePreview]);
+
+  useEffect(() => {
+    if (basePrice > 0) {
+      setBaseCakePrice(basePrice);
+    } else {
+      const savedData = localStorage.getItem("cake-taste-data");
+      if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData);
+          if (parsedData.basePrice) {
+            setBaseCakePrice(parsedData.basePrice);
+          }
+        } catch (e) {
+          console.error("Failed to parse saved cake data", e);
         }
-      } catch (e) {
-        console.error("Failed to parse saved cake data", e);
       }
     }
-  }, []);
+  }, [basePrice]);
 
-  // Calculate text element price based on size
   const calculateTextPrice = (fontSize: number): number => {
     const sizeExtra = Math.max(0, fontSize - 20) * PRICING.TEXT_SIZE_FACTOR;
     return PRICING.TEXT_BASE + sizeExtra;
   };
 
-  // Calculate image element price based on size
   const calculateImagePrice = (width: number): number => {
     const sizeExtra = Math.max(0, width - 50) * PRICING.IMAGE_SIZE_FACTOR;
     return PRICING.IMAGE_BASE + sizeExtra;
   };
 
-  // Calculate shape premium cost
   const getShapePremiumCost = (): number => {
     return (
       PRICING.SHAPE_PREMIUM[
@@ -461,7 +457,6 @@ export default function CakeAppearanceBuilder() {
     );
   };
 
-  // Calculate total appearance price
   const calculateAppearancePrice = (): number => {
     const textsCost = appearance.texts.reduce(
       (total, text) => total + text.price,
@@ -476,17 +471,14 @@ export default function CakeAppearanceBuilder() {
     return textsCost + imagesCost + shapeCost;
   };
 
-  // Calculate total cake price
   const calculateTotalPrice = (): number => {
     return baseCakePrice + calculateAppearancePrice();
   };
 
-  // Add text to cake or update existing text
   const addOrUpdateText = () => {
     if (!newText.trim()) return;
 
     if (selectedTextElement && selectedElement?.startsWith("text_")) {
-      // Update existing text
       updateElement(selectedTextElement.id, {
         text: newText,
         color: selectedColor,
@@ -494,7 +486,6 @@ export default function CakeAppearanceBuilder() {
       setSelectedTextElement(null);
       setNewText("");
     } else {
-      // Add new text with price
       const centerX = cakePreviewRef.current
         ? cakePreviewRef.current.clientWidth / 2 - 50
         : 100;
@@ -502,7 +493,7 @@ export default function CakeAppearanceBuilder() {
         ? cakePreviewRef.current.clientHeight / 2 - 15
         : 100;
 
-      const fontSize = 24; // Default font size
+      const fontSize = 24;
       const textPrice = calculateTextPrice(fontSize);
 
       setAppearance((prev) => ({
@@ -514,7 +505,7 @@ export default function CakeAppearanceBuilder() {
             text: newText,
             color: selectedColor,
             fontSize: fontSize,
-            fontFamily: "Arial, sans-serif", // Default font
+            fontFamily: "Arial, sans-serif",
             x: centerX,
             y: centerY,
             price: textPrice,
@@ -525,7 +516,6 @@ export default function CakeAppearanceBuilder() {
     }
   };
 
-  // Update text or image element
   const updateElement = <T extends TextElement | ImageElement>(
     id: string,
     updates: Partial<T>
@@ -534,7 +524,6 @@ export default function CakeAppearanceBuilder() {
       if (id.startsWith("text_")) {
         const updatedTexts = prev.texts.map((text) => {
           if (text.id === id) {
-            // Recalculate price if font size changes
             let newPrice = text.price;
             if ("fontSize" in updates) {
               newPrice = calculateTextPrice(updates.fontSize as number);
@@ -547,7 +536,6 @@ export default function CakeAppearanceBuilder() {
       } else {
         const updatedImages = prev.images.map((img) => {
           if (img.id === id) {
-            // Recalculate price if width changes
             let newPrice = img.price;
             if ("width" in updates) {
               newPrice = calculateImagePrice(updates.width as number);
@@ -561,7 +549,6 @@ export default function CakeAppearanceBuilder() {
     });
   };
 
-  // Delete element
   const deleteElement = (id: string) => {
     setAppearance((prev) => ({
       ...prev,
@@ -574,12 +561,10 @@ export default function CakeAppearanceBuilder() {
     }
   };
 
-  // Handle image upload
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size before processing - limit to 2MB
     if (file.size > 2 * 1024 * 1024) {
       setValidationMessage(
         "Rozmiar obrazu przekracza limit 2MB. Wybierz mniejszy obraz."
@@ -601,21 +586,17 @@ export default function CakeAppearanceBuilder() {
           ? cakePreviewRef.current.clientHeight / 2 - 50
           : 100;
 
-        const width = 100; // Default width
+        const width = 100;
         const imagePrice = calculateImagePrice(width);
 
-        // Create a temporary image element for resizing
         const img = new Image();
         img.onload = () => {
-          // Create a canvas to resize the image for storage
           const canvas = document.createElement("canvas");
-          // Set canvas size - make it smaller to save storage space
           const MAX_WIDTH = 150;
           const MAX_HEIGHT = 150;
           let targetWidth = img.width;
           let targetHeight = img.height;
 
-          // Calculate new dimensions while preserving aspect ratio
           if (targetWidth > MAX_WIDTH) {
             targetHeight = Math.round(targetHeight * (MAX_WIDTH / targetWidth));
             targetWidth = MAX_WIDTH;
@@ -628,12 +609,10 @@ export default function CakeAppearanceBuilder() {
           canvas.width = targetWidth;
           canvas.height = targetHeight;
 
-          // Draw the resized image on the canvas
           const ctx = canvas.getContext("2d");
           ctx?.drawImage(img, 0, 0, targetWidth, targetHeight);
 
-          // Get the resized image as a base64 string
-          const resizedImageData = canvas.toDataURL("image/jpeg", 0.7); // Use JPEG format with 70% quality
+          const resizedImageData = canvas.toDataURL("image/jpeg", 0.7);
 
           setAppearance((prev) => ({
             ...prev,
@@ -641,7 +620,7 @@ export default function CakeAppearanceBuilder() {
               ...prev.images,
               {
                 id: `image_${Date.now()}`,
-                src: resizedImageData, // Store the resized image
+                src: resizedImageData,
                 x: centerX,
                 y: centerY,
                 width: width,
@@ -657,13 +636,11 @@ export default function CakeAppearanceBuilder() {
 
     reader.readAsDataURL(file);
 
-    // Reset the input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-  // Validate cake appearance
   const validateCake = (): { isValid: boolean; message?: string } => {
     if (appearance.texts.length === 0 && appearance.images.length === 0) {
       return {
@@ -675,13 +652,12 @@ export default function CakeAppearanceBuilder() {
     return { isValid: true };
   };
 
-  // Handle continue button click
   const handleContinue = () => {
     const validation = validateCake();
 
     if (validation.isValid) {
       try {
-        // Create appearance preview data that includes the actual image data
+        const currentAppearancePrice = calculateAppearancePrice();
         const appearancePreviewData = {
           shape: appearance.shape,
           baseColor: appearance.baseColor,
@@ -694,10 +670,9 @@ export default function CakeAppearanceBuilder() {
             x: text.x,
             y: text.y,
           })),
-          // Include actual image data but keep it minimal
           images: appearance.images.map((image) => ({
             id: image.id,
-            src: image.src, // This contains our resized base64 image
+            src: image.src,
             x: image.x,
             y: image.y,
             width: image.width,
@@ -705,7 +680,15 @@ export default function CakeAppearanceBuilder() {
           })),
         };
 
-        // Save cake appearance data with price
+        const customText =
+          appearance.texts.length > 0 ? appearance.texts[0].text : null;
+
+        setAppearancePreview(
+          appearancePreviewData,
+          currentAppearancePrice,
+          customText
+        );
+
         localStorage.setItem(
           "cake-appearance-data",
           JSON.stringify({
@@ -713,18 +696,20 @@ export default function CakeAppearanceBuilder() {
               shape: appearance.shape,
               baseColor: appearance.baseColor,
               texts: appearance.texts,
-              // For storage efficiency, store minimal image info in the main appearance object
               imageCount: appearance.images.length,
             },
-            appearancePrice: calculateAppearancePrice(),
+            appearancePrice: currentAppearancePrice,
             basePrice: baseCakePrice,
             totalPrice: calculateTotalPrice(),
-            appearancePreview: appearancePreviewData, // This has the actual image data
-            customText: appearance.texts.map((t) => t.text).join(" "),
+            appearancePreview: appearancePreviewData,
+            customText: customText,
           })
         );
 
-        router.push("/kreator/opakowanie");
+        const nextStepUrl = editId
+          ? `/kreator/opakowanie?edit=${editId}`
+          : "/kreator/opakowanie";
+        router.push(nextStepUrl);
       } catch (error) {
         console.error("Error saving cake data:", error);
         setValidationMessage(
@@ -733,7 +718,6 @@ export default function CakeAppearanceBuilder() {
         setAlertOpen(true);
       }
     } else {
-      // Show validation error
       setValidationMessage(
         validation.message || "Twój projekt tortu jest niekompletny."
       );
@@ -741,12 +725,7 @@ export default function CakeAppearanceBuilder() {
     }
   };
 
-  // Clear canvas when clicking anywhere inside preview area
   const handleCanvasClick = (e: React.MouseEvent) => {
-    // This function now works for clicks anywhere in the preview area
-    // except on text/image elements which stop propagation
-
-    // For better debugging, we can confirm we're clicking on the cake area
     const isTargetCakePreview =
       e.target === cakePreviewRef.current ||
       e.currentTarget === cakePreviewRef.current ||
@@ -754,24 +733,15 @@ export default function CakeAppearanceBuilder() {
       e.currentTarget.contains(e.target as Node);
 
     if (isTargetCakePreview) {
-      // Only reset if we're clicking in the cake preview area
-
-      // Clear selected element
       setSelectedElement(null);
-
-      // Reset text editing state
       setSelectedTextElement(null);
       setNewText("");
-
-      // Reset other form fields to defaults
       setSelectedColor("#000000");
     }
   };
 
-  // Update when selected element changes
   useEffect(() => {
     if (selectedElement?.startsWith("text_")) {
-      // Find the selected text element
       const textElement = appearance.texts.find(
         (text) => text.id === selectedElement
       );
@@ -788,10 +758,9 @@ export default function CakeAppearanceBuilder() {
     }
   }, [selectedElement, appearance.texts]);
 
-  // Get SVG path or shape rendering based on selected shape
   const renderCakeShape = () => {
     const shape = appearance.shape;
-    const size = 300; // Base size for the cake
+    const size = 300;
 
     switch (shape.type) {
       case "circle":
@@ -849,12 +818,30 @@ export default function CakeAppearanceBuilder() {
     }
   };
 
+  const handlePreviousStep = () => {
+    const previousStepUrl = editId ? `/kreator?edit=${editId}` : "/kreator";
+    router.push(previousStepUrl);
+  };
+
+  const setShape = (shape: CakeShape) => {
+    setAppearance((prev) => ({
+      ...prev,
+      shape,
+    }));
+  };
+
+  const handleSetBaseColor = (color: string) => {
+    setAppearance((prev) => ({
+      ...prev,
+      baseColor: color,
+    }));
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">Wygląd Tortu</h1>
 
       <div className="grid grid-cols-1 gap-8">
-        {/* Cake Preview - Top Down View */}
         <div className="bg-muted p-6 rounded-lg">
           <h2 className="text-2xl font-semibold mb-4">Podgląd Tortu</h2>
           <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4">
@@ -864,11 +851,9 @@ export default function CakeAppearanceBuilder() {
                 className="relative bg-white rounded-lg p-4 w-[350px] h-[350px] flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300"
                 onClick={handleCanvasClick}
               >
-                {/* Cake Shape */}
                 <div className="relative">
                   {renderCakeShape()}
 
-                  {/* Text Elements */}
                   {appearance.texts.map((text) => (
                     <DraggableText
                       key={text.id}
@@ -880,7 +865,6 @@ export default function CakeAppearanceBuilder() {
                     />
                   ))}
 
-                  {/* Image Elements */}
                   {appearance.images.map((image) => (
                     <DraggableImage
                       key={image.id}
@@ -893,21 +877,8 @@ export default function CakeAppearanceBuilder() {
                   ))}
                 </div>
               </div>
-
-              {/* Continue button */}
-              <div className="mt-8 w-full max-w-md">
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={handleContinue}
-                  variant="default"
-                >
-                  Przejdź do Następnego Kroku
-                </Button>
-              </div>
             </div>
 
-            {/* Guidance and Selected Element Properties */}
             <div className="flex flex-col space-y-4">
               <div className="bg-white p-4 rounded-md border">
                 <h3 className="font-medium text-lg mb-2">Instrukcje</h3>
@@ -919,7 +890,6 @@ export default function CakeAppearanceBuilder() {
                 </ul>
               </div>
 
-              {/* Price Breakdown */}
               <div className="bg-white p-4 rounded-md border">
                 <h3 className="font-medium text-lg mb-2">Rozkład Cen</h3>
                 <div className="space-y-1">
@@ -983,8 +953,17 @@ export default function CakeAppearanceBuilder() {
                   </span>
                 </div>
               </div>
+              <div className="mt-8 w-full max-w-md">
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={handleContinue}
+                  variant="default"
+                >
+                  Przejdź do Następnego Kroku
+                </Button>
+              </div>
 
-              {/* Selected element section */}
               {selectedElement && (
                 <div className="bg-white p-4 rounded-md border">
                   <h3 className="font-medium text-lg mb-2">Wybrany Element</h3>
@@ -1019,7 +998,6 @@ export default function CakeAppearanceBuilder() {
           </div>
         </div>
 
-        {/* Design Options */}
         <div>
           <h2 className="text-2xl font-semibold mb-4">Zaprojektuj Swój Tort</h2>
           <Tabs defaultValue="shape">
@@ -1029,7 +1007,6 @@ export default function CakeAppearanceBuilder() {
               <TabsTrigger value="image">Dodaj Obraz</TabsTrigger>
             </TabsList>
 
-            {/* Shape & Color Tab */}
             <TabsContent value="shape" className="space-y-4">
               <div>
                 <h3 className="text-lg font-medium mb-2">Kształt Tortu</h3>
@@ -1083,7 +1060,7 @@ export default function CakeAppearanceBuilder() {
 
               <div>
                 <h3 className="text-lg font-medium mb-2">Kolor Tortu</h3>
-                <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
+                <div className="flex gap-4">
                   {baseColors.map((color) => (
                     <TooltipProvider key={color.id}>
                       <Tooltip>
@@ -1095,7 +1072,7 @@ export default function CakeAppearanceBuilder() {
                                 : "border-gray-200"
                             }`}
                             style={{ backgroundColor: color.value }}
-                            onClick={() => setBaseColor(color.value)}
+                            onClick={() => handleSetBaseColor(color.value)}
                           />
                         </TooltipTrigger>
                         <TooltipContent>
@@ -1108,7 +1085,6 @@ export default function CakeAppearanceBuilder() {
               </div>
             </TabsContent>
 
-            {/* Text Tab */}
             <TabsContent value="text" className="space-y-4">
               <div className="grid gap-4">
                 <div className="grid gap-2">
@@ -1206,7 +1182,6 @@ export default function CakeAppearanceBuilder() {
               </div>
             </TabsContent>
 
-            {/* Image Upload Tab */}
             <TabsContent value="image" className="space-y-4">
               <div className="grid gap-4">
                 <div className="grid gap-2">
@@ -1234,7 +1209,13 @@ export default function CakeAppearanceBuilder() {
         </div>
       </div>
 
-      {/* Validation Alert Dialog */}
+      <div className="flex justify-between mt-8">
+        <Button variant="outline" onClick={handlePreviousStep}>
+          Wróć do Smaku
+        </Button>
+        <Button onClick={handleContinue}>Przejdź do Opakowania</Button>
+      </div>
+
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

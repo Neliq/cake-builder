@@ -1,185 +1,171 @@
 "use client";
 
-import React, {
+import {
   createContext,
   useContext,
+  ReactNode,
   useState,
   useEffect,
-  ReactNode,
+  useCallback,
 } from "react";
+import {
+  CartContextType,
+  CartItem,
+  CustomerDetails,
+  DeliveryDetails,
+} from "@/types/cart";
 
-export interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  customText?: string;
-  // Full preview data for each component
-  tastePreview?: any;
-  appearancePreview?: any;
-  packagingPreview?: any;
-  packagingDetails?: {
-    type: string;
-    size: string;
-    giftMessage?: string;
-    recipientName?: string;
-  };
-}
+const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export interface CustomerDetails {
-  name: string;
-  email: string;
-  phone: string;
-}
-
-export interface DeliveryDetails {
-  address: string;
-  city: string;
-  postalCode: string;
-}
-
-export type CartContextType = {
-  items: CartItem[];
-  customerDetails: CustomerDetails | null;
-  deliveryDetails: DeliveryDetails | null;
-  setCustomerDetails: (details: CustomerDetails) => void;
-  setDeliveryDetails: (details: DeliveryDetails) => void;
-  itemCount: number;
-  addItem: (id: string, quantity?: number) => void;
-  decreaseItem: (id: string) => void;
-  removeItem: (id: string) => void;
-  clearCart: () => void;
-  addCustomCake: (cake: CartItem) => void;
+// Helper function to get initial state from localStorage
+const getInitialState = <T,>(key: string, defaultValue: T): T => {
+  if (typeof window === "undefined") {
+    return defaultValue;
+  }
+  try {
+    const item = window.localStorage.getItem(key);
+    if (item) {
+      const parsed = JSON.parse(item);
+      // Handle date deserialization for deliveryDetails
+      if (key === "delivery-details" && parsed.deliveryDate) {
+        parsed.deliveryDate = new Date(parsed.deliveryDate);
+      }
+      return parsed;
+    }
+  } catch (error) {
+    console.error(`Error reading localStorage key “${key}”:`, error);
+  }
+  return defaultValue;
 };
 
-export const CartContext = createContext<CartContextType>({
-  items: [],
-  customerDetails: null,
-  deliveryDetails: null,
-  setCustomerDetails: () => {},
-  setDeliveryDetails: () => {},
-  itemCount: 0,
-  addItem: () => {},
-  decreaseItem: () => {},
-  removeItem: () => {},
-  clearCart: () => {},
-  addCustomCake: () => {},
-});
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [items, setItems] = useState<CartItem[]>(() =>
+    getInitialState<CartItem[]>("cart-items", [])
+  );
+  const [customerDetails, setCustomerDetailsState] =
+    useState<CustomerDetails | null>(() =>
+      getInitialState<CustomerDetails | null>("customer-details", null)
+    );
+  const [deliveryDetails, setDeliveryDetailsState] =
+    useState<DeliveryDetails | null>(() =>
+      getInitialState<DeliveryDetails | null>("delivery-details", null)
+    );
 
-export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [customerDetails, setCustomerDetails] =
-    useState<CustomerDetails | null>(null);
-  const [deliveryDetails, setDeliveryDetails] =
-    useState<DeliveryDetails | null>(null);
-
-  // Calculate total quantity of items
-  const itemCount = items.reduce((total, item) => total + item.quantity, 0);
-
-  // Load cart from localStorage on first render
+  // Persist items to localStorage
   useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem("shopping-cart");
-      if (savedCart) {
-        setItems(JSON.parse(savedCart));
-      }
-    } catch (error) {
-      console.error("Failed to load cart:", error);
-    }
-  }, []);
-
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem("shopping-cart", JSON.stringify(items));
+    localStorage.setItem("cart-items", JSON.stringify(items));
   }, [items]);
 
-  // Add item to cart
-  const addItem = (id: string, quantity = 1) => {
-    setItems((prevItems) => {
-      const itemIndex = prevItems.findIndex((item) => item.id === id);
+  // Persist customerDetails to localStorage
+  useEffect(() => {
+    if (customerDetails) {
+      localStorage.setItem("customer-details", JSON.stringify(customerDetails));
+    } else {
+      localStorage.removeItem("customer-details");
+    }
+  }, [customerDetails]);
 
-      if (itemIndex >= 0) {
-        // Item exists, update quantity
-        const updatedItems = [...prevItems];
-        updatedItems[itemIndex] = {
-          ...updatedItems[itemIndex],
-          quantity: updatedItems[itemIndex].quantity + quantity,
-        };
-        return updatedItems;
-      }
+  // Persist deliveryDetails to localStorage
+  useEffect(() => {
+    if (deliveryDetails) {
+      const storableDetails = {
+        ...deliveryDetails,
+        deliveryDate:
+          deliveryDetails.deliveryDate instanceof Date
+            ? deliveryDetails.deliveryDate.toISOString()
+            : deliveryDetails.deliveryDate,
+      };
+      localStorage.setItem("delivery-details", JSON.stringify(storableDetails));
+    } else {
+      localStorage.removeItem("delivery-details");
+    }
+  }, [deliveryDetails]);
 
-      // Item doesn't exist, log error - should use addCustomCake for new items
-      console.error(
-        "Attempted to add non-existent item. Use addCustomCake instead."
-      );
-      return prevItems;
-    });
+  const setCustomerDetails = (details: CustomerDetails | null) => {
+    setCustomerDetailsState(details);
   };
 
-  // Add a complete custom cake to cart
-  const addCustomCake = (cake: CartItem) => {
+  const setDeliveryDetails = (details: DeliveryDetails | null) => {
+    if (details?.deliveryDate && typeof details.deliveryDate === "string") {
+      details.deliveryDate = new Date(details.deliveryDate);
+    }
+    setDeliveryDetailsState(details);
+  };
+
+  const calculateTotal = () => {
+    const subtotal = items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    const deliveryFee =
+      deliveryDetails?.deliveryMethod === "shipping" ? 15.0 : 0;
+    const total = subtotal + deliveryFee;
+
+    return { subtotal, deliveryFee, total };
+  };
+
+  const addCustomCake = useCallback((cake: CartItem) => {
     setItems((prevItems) => [...prevItems, cake]);
-  };
+  }, []);
 
-  // Decrease item quantity
-  const decreaseItem = (id: string) => {
-    setItems((prevItems) => {
-      const itemIndex = prevItems.findIndex((item) => item.id === id);
+  const addItem = useCallback((id: string) => {
+    setItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === id ? { ...item, quantity: item.quantity + 1 } : item
+      )
+    );
+  }, []);
 
-      if (itemIndex >= 0) {
-        const item = prevItems[itemIndex];
+  const decreaseItem = useCallback((id: string) => {
+    setItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === id && item.quantity > 1
+          ? { ...item, quantity: item.quantity - 1 }
+          : item
+      )
+    );
+  }, []);
 
-        if (item.quantity > 1) {
-          // Decrease quantity
-          const updatedItems = [...prevItems];
-          updatedItems[itemIndex] = {
-            ...item,
-            quantity: item.quantity - 1,
-          };
-          return updatedItems;
-        } else {
-          // Remove item if quantity will be zero
-          return prevItems.filter((item) => item.id !== id);
-        }
-      }
-
-      return prevItems;
-    });
-  };
-
-  // Remove item from cart
-  const removeItem = (id: string) => {
+  const removeItem = useCallback((id: string) => {
     setItems((prevItems) => prevItems.filter((item) => item.id !== id));
-  };
+  }, []);
 
-  // Clear all items from cart
-  const clearCart = () => {
-    setItems([]);
-  };
+  const updateItem = useCallback(
+    (id: string, updatedData: Partial<CartItem>) => {
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === id ? { ...item, ...updatedData } : item
+        )
+      );
+    },
+    []
+  );
 
-  const contextValue = {
-    items,
-    customerDetails,
-    deliveryDetails,
-    setCustomerDetails,
-    setDeliveryDetails,
-    itemCount,
-    addItem,
-    decreaseItem,
-    removeItem,
-    clearCart,
-    addCustomCake,
-  };
+  const itemCount = items.reduce((count, item) => count + item.quantity, 0);
 
   return (
-    <CartContext.Provider value={contextValue}>{children}</CartContext.Provider>
+    <CartContext.Provider
+      value={{
+        items,
+        customerDetails,
+        deliveryDetails,
+        setCustomerDetails,
+        setDeliveryDetails,
+        calculateTotal,
+        addCustomCake,
+        addItem,
+        decreaseItem,
+        removeItem,
+        updateItem,
+        itemCount,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
   );
-};
+}
 
-// Custom hook to use the cart context
-export function useCart() {
+export function useCart(): CartContextType {
   const context = useContext(CartContext);
   if (context === undefined) {
     throw new Error("useCart must be used within a CartProvider");

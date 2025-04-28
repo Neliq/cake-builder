@@ -1,6 +1,13 @@
 "use client";
 
-import { Minus, Plus, Trash2, ShoppingBag, Gift } from "lucide-react";
+import {
+  Minus,
+  Plus,
+  Trash2,
+  ShoppingBag,
+  Gift,
+  Pencil, // Import Pencil icon
+} from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCart } from "@/context/cart-context";
+import { useBuilder } from "@/context/builder-context"; // Import useBuilder hook
 import {
   Tooltip,
   TooltipContent,
@@ -22,34 +30,43 @@ import {
 } from "@/components/ui/tooltip";
 import { useEffect } from "react";
 
-// Import the preview components from the dedicated file
+// Import the preview components and their prop types from the dedicated file
 import {
   AppearancePreview,
   TastePreview,
   PackagingPreview,
+  type TastePreviewProps,
+  type AppearancePreviewProps,
+  type PackagingPreviewProps,
 } from "@/components/preview-renderers";
 
 export default function Cart() {
   const { items, addItem, decreaseItem, removeItem } = useCart();
+  // Get the builder context for previews
+  const { tastePreview, appearancePreview, packagingPreview } = useBuilder();
 
   // For debugging - log the items to ensure previews are present
   useEffect(() => {
-    // Log basic structure info without the full image data
+    // More detailed debugging of preview data
+    console.log("Builder context previews:", {
+      tastePreview,
+      appearancePreview,
+      packagingPreview,
+    });
+
+    // Log cart items with more details
     console.log(
       "Cart items:",
       items.map((item) => ({
-        ...item,
-        appearancePreview: item.appearancePreview
-          ? {
-              ...item.appearancePreview,
-              images: item.appearancePreview.images
-                ? `${item.appearancePreview.images.length} images`
-                : "no images",
-            }
-          : "no preview",
+        id: item.id,
+        name: item.name,
+        tastePreview: item.tastePreview ? "present" : "missing",
+        appearancePreview: item.appearancePreview ? "present" : "missing",
+        packagingPreview: item.packagingPreview ? "present" : "missing",
+        packagingDetails: item.packagingDetails ? "present" : "missing",
       }))
     );
-  }, [items]);
+  }, [items, tastePreview, appearancePreview, packagingPreview]);
 
   const totalPrice = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -57,8 +74,69 @@ export default function Cart() {
   );
 
   // Utility function to check if preview data is valid
-  const isValidPreviewData = (data: any) => {
-    return data && typeof data === "object" && Object.keys(data).length > 0;
+  const isValidPreviewData = <T extends object>(
+    data: T | undefined
+  ): data is T => {
+    return Boolean(
+      data && typeof data === "object" && Object.keys(data).length > 0
+    );
+  };
+
+  // Function to get taste preview data with fallback to builder context
+  const getTastePreview = (item: any) => {
+    // Debug which source we're using
+    let source = "none";
+    let result = undefined;
+
+    if (isValidPreviewData(item.tastePreview)) {
+      source = "cart item";
+      result = item.tastePreview;
+    } else if (tastePreview) {
+      source = "builder context";
+      result = tastePreview;
+    }
+
+    console.log(`Taste preview for ${item.id}: using ${source} source`);
+    return result;
+  };
+
+  // Function to get appearance preview data with fallback to builder context
+  const getAppearancePreview = (item: any) => {
+    // Debug which source we're using
+    let source = "none";
+    let result = undefined;
+
+    if (isValidPreviewData(item.appearancePreview)) {
+      source = "cart item";
+      result = item.appearancePreview;
+    } else if (appearancePreview) {
+      source = "builder context";
+      result = appearancePreview;
+    }
+
+    console.log(`Appearance preview for ${item.id}: using ${source} source`);
+    return result;
+  };
+
+  // Function to get packaging preview data with fallback to builder context
+  const getPackagingPreview = (item: any) => {
+    // Debug which source we're using
+    let source = "none";
+    let result = undefined;
+
+    if (isValidPreviewData(item.packagingPreview)) {
+      source = "cart item";
+      result = item.packagingPreview;
+    } else if (isValidPreviewData(item.packagingDetails)) {
+      source = "packaging details";
+      result = item.packagingDetails;
+    } else if (packagingPreview) {
+      source = "builder context";
+      result = packagingPreview;
+    }
+
+    console.log(`Packaging preview for ${item.id}: using ${source} source`);
+    return result;
   };
 
   return (
@@ -91,12 +169,11 @@ export default function Cart() {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className="relative w-20 h-20 rounded-md overflow-hidden border">
-                                    {item.appearancePreview && (
+                                    {getAppearancePreview(item) ? (
                                       <AppearancePreview
-                                        data={item.appearancePreview}
+                                        data={getAppearancePreview(item)!}
                                       />
-                                    )}
-                                    {!item.appearancePreview && (
+                                    ) : (
                                       <div className="w-full h-full flex items-center justify-center bg-gray-100">
                                         <span className="text-xs">
                                           No preview
@@ -114,13 +191,17 @@ export default function Cart() {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className="relative w-20 h-20 rounded-md overflow-hidden border">
-                                    <TastePreview
-                                      data={
-                                        isValidPreviewData(item.tastePreview)
-                                          ? item.tastePreview
-                                          : undefined
-                                      }
-                                    />
+                                    {getTastePreview(item) ? (
+                                      <TastePreview
+                                        data={getTastePreview(item)!}
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                                        <span className="text-xs">
+                                          No preview
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
@@ -132,15 +213,17 @@ export default function Cart() {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className="relative w-20 h-20 rounded-md overflow-hidden border">
-                                    <PackagingPreview
-                                      data={
-                                        isValidPreviewData(
-                                          item.packagingPreview
-                                        )
-                                          ? item.packagingPreview
-                                          : item.packagingDetails
-                                      }
-                                    />
+                                    {getPackagingPreview(item) ? (
+                                      <PackagingPreview
+                                        data={getPackagingPreview(item)!}
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                                        <span className="text-xs">
+                                          No preview
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
@@ -174,12 +257,24 @@ export default function Cart() {
                         </div>
 
                         <div className="flex items-center space-x-2">
+                          {/* Edit Button */}
+                          <Link href={`/kreator?edit=${item.id}`}>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          {/* Quantity Controls */}
                           <div className="flex items-center border rounded-md">
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => decreaseItem(item.id)}
                               className="h-8 w-8 p-0"
+                              disabled={item.quantity <= 1} // Add disabled attribute
                             >
                               <Minus className="h-3 w-3" />
                             </Button>
@@ -195,6 +290,7 @@ export default function Cart() {
                               <Plus className="h-3 w-3" />
                             </Button>
                           </div>
+                          {/* Remove Button */}
                           <Button
                             variant="ghost"
                             size="icon"
