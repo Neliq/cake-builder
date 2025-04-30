@@ -141,6 +141,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const clearCart = useCallback(() => {
+    setItems([]);
+    setCustomerDetailsState(null);
+    setDeliveryDetailsState(null);
+    // Optionally clear localStorage immediately, though useEffects will handle it
+    localStorage.removeItem("cart-items");
+    localStorage.removeItem("customer-details");
+    localStorage.removeItem("delivery-details");
+  }, []);
+
   const itemCount = items.reduce((count, item) => count + item.quantity, 0);
 
   return (
@@ -157,6 +167,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         decreaseItem,
         removeItem,
         updateItem,
+        clearCart,
         itemCount,
       }}
     >

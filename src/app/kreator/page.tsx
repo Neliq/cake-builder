@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, Suspense } from "react"; // Import Suspense
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation"; // Import useRouter
 import CakeBuilder from "@/components/builder";
 import Footer from "@/components/footer/footer";
 import Navbar from "@/components/navbar/navbar";
@@ -14,40 +14,100 @@ function KreatorContent() {
   const [importedLayerNames, setImportedLayerNames] = useState<string[] | null>(
     null
   );
+  const router = useRouter(); // Get router instance
   const searchParams = useSearchParams();
   const { items: cartItems } = useCart();
-  const { loadBuilderFromCartItem, resetBuilder } = useBuilder(); // Get load function
+  const { loadBuilderFromCartItem, resetBuilder, editingItemId } = useBuilder(); // Add editingItemId
+
+  const handleStepClick = (step: number) => {
+    const currentStep = 1; // This page is step 1
+    if (step <= currentStep) {
+      const editId = searchParams.get("edit");
+      let path = "";
+      switch (step) {
+        case 1:
+          path = "/kreator";
+          break;
+        // Add cases for other steps if needed, though they won't be clickable from here
+        default:
+          return;
+      }
+      const finalPath = editId ? `${path}?edit=${editId}` : path;
+      // Only navigate if the path changes (or if forcing a refresh is desired)
+      if (
+        window.location.pathname !== finalPath.split("?")[0] ||
+        searchParams.get("edit") !== editId
+      ) {
+        router.push(finalPath);
+      }
+    }
+  };
 
   useEffect(() => {
     const editId = searchParams.get("edit");
 
     if (editId) {
-      const itemToEdit = cartItems.find((item) => item.id === editId);
-      if (itemToEdit) {
-        console.log("Found item to edit, loading into builder:", itemToEdit);
-        loadBuilderFromCartItem(itemToEdit); // Load item data into context
-
-        // Optionally set importedLayerNames if CakeBuilder still needs it directly
-        // This might become redundant if CakeBuilder reads directly from context
-        if (itemToEdit.tastePreview?.layers) {
-          const layerNames = itemToEdit.tastePreview.layers.map(
-            (layer) => layer.name
+      // Editing: Load only if the editId is different from the context's editingItemId
+      if (editId !== editingItemId) {
+        const itemToEdit = cartItems.find((item) => item.id === editId);
+        if (itemToEdit) {
+          console.log("Kreator: Loading item to edit:", editId);
+          loadBuilderFromCartItem(itemToEdit);
+          // Update local state if still needed by CakeBuilder directly
+          if (itemToEdit.tastePreview?.layers) {
+            const layerNames = itemToEdit.tastePreview.layers.map(
+              (layer) => layer.name
+            );
+            setImportedLayerNames(layerNames);
+          } else {
+            setImportedLayerNames(null); // Clear if no layers
+          }
+        } else {
+          console.warn(
+            `Kreator: Cart item with id ${editId} not found. Resetting.`
           );
-          setImportedLayerNames(layerNames);
+          resetBuilder();
+          setImportedLayerNames(null);
+          // Optionally check local storage as fallback?
+          // checkLocalStorageImport();
         }
       } else {
-        console.warn(`Cart item with id ${editId} not found.`);
-        // Decide fallback behavior: reset or load from localStorage?
-        resetBuilder(); // Reset if item not found
-        checkLocalStorageImport();
+        console.log("Kreator: Already editing item:", editId);
+        // Ensure local state reflects context if needed
+        // This part might be redundant if CakeBuilder reads directly from context
+        const currentEditItem = cartItems.find(
+          (item) => item.id === editingItemId
+        );
+        if (currentEditItem?.tastePreview?.layers) {
+          const layerNames = currentEditItem.tastePreview.layers.map(
+            (l) => l.name
+          );
+          setImportedLayerNames(layerNames);
+        } else if (!editingItemId) {
+          // If somehow editingItemId is null/undefined here
+          setImportedLayerNames(null);
+        }
       }
     } else {
-      // Not editing, reset builder and check localStorage
-      resetBuilder(); // Reset builder when starting fresh
-      checkLocalStorageImport();
+      // Not editing: Reset only if we were previously editing
+      if (editingItemId) {
+        console.log("Kreator: Navigated away from edit. Resetting builder.");
+        resetBuilder();
+        setImportedLayerNames(null);
+      } else {
+        // Persist state if navigating back from step 2/3 in a non-edit flow
+        console.log("Kreator: Non-edit mode or fresh start.");
+        // checkLocalStorageImport(); // Keep checking local storage for initial import?
+      }
     }
     // Ensure dependencies cover changes
-  }, [searchParams, cartItems, loadBuilderFromCartItem, resetBuilder]);
+  }, [
+    searchParams,
+    cartItems,
+    loadBuilderFromCartItem,
+    resetBuilder,
+    editingItemId,
+  ]);
 
   // Function to check localStorage (extracted from original useEffect)
   const checkLocalStorageImport = () => {
@@ -72,6 +132,7 @@ function KreatorContent() {
       <Stepper
         currentStep={1}
         steps={["Smak", "Wygląd", "Opakowanie"]}
+        onStepClick={handleStepClick} // Pass the handler
         icons={[
           <Cake className="h-4 w-4" key="cake" />,
           <Cookie className="h-4 w-4" key="cookie" />,

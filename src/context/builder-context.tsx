@@ -7,6 +7,7 @@ import {
   useState,
   useCallback,
   useMemo,
+  useEffect, // Import useEffect
 } from "react";
 import type { CartItem } from "@/types/cart"; // Import CartItem type
 
@@ -69,26 +70,21 @@ export type AppearancePreview = {
 
 export type PackagingPreview = PackagingOption;
 
-// Types for the builder context
-export interface BuilderContextType {
-  // Preview states
+// Define the shape of the state object
+type BuilderState = {
   tastePreview: TastePreview | null;
   appearancePreview: AppearancePreview | null;
   packagingPreview: PackagingPreview | null;
-
-  // Pricing information
   basePrice: number;
   appearancePrice: number;
   packagingPrice: number;
-  totalPrice: number;
-
-  // Custom text for cake name
   customText: string | null;
-
-  // ID of item being edited
   editingItemId: string | null;
+};
 
-  // Methods to update previews
+// Types for the builder context (methods remain the same)
+export interface BuilderContextType extends BuilderState {
+  totalPrice: number;
   setTastePreview: (preview: TastePreview, price: number) => void;
   setAppearancePreview: (
     preview: AppearancePreview,
@@ -96,63 +92,90 @@ export interface BuilderContextType {
     text: string | null
   ) => void;
   setPackagingPreview: (preview: PackagingPreview, price: number) => void;
-
-  // Method to reset all previews
   resetBuilder: () => void;
-
-  // Method to check if all previews are available
   isBuilderComplete: () => boolean;
-
-  // Method to load state from a cart item
   loadBuilderFromCartItem: (item: CartItem) => void;
 }
 
 // Create the context
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
+// localStorage key
+const LOCAL_STORAGE_KEY = "cakeBuilderState";
+
+// Default initial state
+const defaultInitialState: BuilderState = {
+  tastePreview: null,
+  appearancePreview: null,
+  packagingPreview: null,
+  basePrice: 0,
+  appearancePrice: 0,
+  packagingPrice: 0,
+  customText: null,
+  editingItemId: null,
+};
+
 // Create the provider component
 export function BuilderProvider({ children }: { children: ReactNode }) {
-  // State for the previews
-  const [tastePreview, setTastePreviewState] = useState<TastePreview | null>(
-    null
-  );
-  const [appearancePreview, setAppearancePreviewState] =
-    useState<AppearancePreview | null>(null);
-  const [packagingPreview, setPackagingPreviewState] =
-    useState<PackagingPreview | null>(null);
+  // Use a single state object, initialized from localStorage
+  const [state, setState] = useState<BuilderState>(() => {
+    if (typeof window === "undefined") {
+      return defaultInitialState; // Return default if on server
+    }
+    try {
+      const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (savedState) {
+        console.log("BuilderContext: Loading state from localStorage");
+        // Add validation here if needed
+        return JSON.parse(savedState);
+      }
+    } catch (error) {
+      console.error(
+        "BuilderContext: Error loading state from localStorage",
+        error
+      );
+    }
+    return defaultInitialState;
+  });
 
-  // State for pricing
-  const [basePrice, setBasePriceState] = useState<number>(0);
-  const [appearancePrice, setAppearancePriceState] = useState<number>(0);
-  const [packagingPrice, setPackagingPriceState] = useState<number>(0);
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        console.log("BuilderContext: Saving state to localStorage", state);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+      } catch (error) {
+        console.error(
+          "BuilderContext: Error saving state to localStorage",
+          error
+        );
+      }
+    }
+  }, [state]); // Dependency array ensures this runs when state changes
 
-  // State for custom text
-  const [customText, setCustomTextState] = useState<string | null>(null);
-
-  // State for tracking edit ID
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-
-  // Calculate total price
+  // Calculate total price using useMemo based on the state object
   const totalPrice = useMemo(() => {
-    return basePrice + appearancePrice + packagingPrice;
-  }, [basePrice, appearancePrice, packagingPrice]);
+    return state.basePrice + state.appearancePrice + state.packagingPrice;
+  }, [state.basePrice, state.appearancePrice, state.packagingPrice]);
 
-  // Method to update taste preview
+  // --- Modified Context Functions to use setState ---
+
   const setTastePreview = useCallback(
     (preview: TastePreview, price: number) => {
-      setTastePreviewState(preview);
-      setBasePriceState(price);
+      setState((s) => ({ ...s, tastePreview: preview, basePrice: price }));
       console.log("Context: Taste preview set", preview, "Price:", price);
     },
     []
   );
 
-  // Method to update appearance preview
   const setAppearancePreview = useCallback(
     (preview: AppearancePreview, price: number, text: string | null) => {
-      setAppearancePreviewState(preview);
-      setAppearancePriceState(price);
-      setCustomTextState(text);
+      setState((s) => ({
+        ...s,
+        appearancePreview: preview,
+        appearancePrice: price,
+        customText: text,
+      }));
       console.log(
         "Context: Appearance preview set",
         preview,
@@ -165,92 +188,65 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // Method to update packaging preview
   const setPackagingPreview = useCallback(
     (preview: PackagingPreview, price: number) => {
-      setPackagingPreviewState(preview);
-      setPackagingPriceState(price);
+      setState((s) => ({
+        ...s,
+        packagingPreview: preview,
+        packagingPrice: price,
+      }));
       console.log("Context: Packaging preview set", preview, "Price:", price);
     },
     []
   );
 
-  // Method to load state from a cart item
   const loadBuilderFromCartItem = useCallback((item: CartItem) => {
     console.log("Context: Loading item into builder", item);
-    setEditingItemId(item.id); // Set the ID of the item being loaded
-
-    // Load Taste/Base Price
-    if (item.tastePreview && typeof item.basePrice === "number") {
-      setTastePreviewState(item.tastePreview);
-      setBasePriceState(item.basePrice);
-    } else {
-      setTastePreviewState(null);
-      setBasePriceState(0);
-    }
-
-    // Load Appearance/Appearance Price/Custom Text
-    if (item.appearancePreview && typeof item.appearancePrice === "number") {
-      setAppearancePreviewState(item.appearancePreview);
-      setAppearancePriceState(item.appearancePrice);
-      setCustomTextState(item.customText || null); // Load custom text if available
-    } else {
-      setAppearancePreviewState(null);
-      setAppearancePriceState(0);
-      setCustomTextState(null);
-    }
-
-    // Load Packaging/Packaging Price
-    if (item.packagingPreview && typeof item.packagingPrice === "number") {
-      setPackagingPreviewState(item.packagingPreview);
-      setPackagingPriceState(item.packagingPrice);
-    } else {
-      setPackagingPreviewState(null);
-      setPackagingPriceState(0);
-    }
-
-    console.log("Context: Item loaded. Current state:", {
-      editingItemId: item.id, // Log the ID being edited
-      tastePreview: item.tastePreview,
-      basePrice: item.basePrice,
-      appearancePreview: item.appearancePreview,
-      appearancePrice: item.appearancePrice,
-      customText: item.customText,
-      packagingPreview: item.packagingPreview,
-      packagingPrice: item.packagingPrice,
-    });
+    const newState: BuilderState = {
+      tastePreview: item.tastePreview || null,
+      basePrice: typeof item.basePrice === "number" ? item.basePrice : 0,
+      appearancePreview: item.appearancePreview || null,
+      appearancePrice:
+        typeof item.appearancePrice === "number" ? item.appearancePrice : 0,
+      customText: item.customText || null,
+      packagingPreview: item.packagingPreview || null,
+      packagingPrice:
+        typeof item.packagingPrice === "number" ? item.packagingPrice : 0,
+      editingItemId: item.id, // Set the ID of the item being loaded
+    };
+    setState(newState); // Update the single state object
+    console.log("Context: Item loaded. Current state:", newState);
   }, []);
 
-  // Method to reset all previews
   const resetBuilder = useCallback(() => {
-    setTastePreviewState(null);
-    setAppearancePreviewState(null);
-    setPackagingPreviewState(null);
-    setBasePriceState(0);
-    setAppearancePriceState(0);
-    setPackagingPriceState(0);
-    setCustomTextState(null);
-    setEditingItemId(null); // Clear the editing ID on reset
     console.log("Context: Builder reset");
+    setState(defaultInitialState); // Reset to default state
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear localStorage
+        console.log("Context: Cleared localStorage");
+      } catch (error) {
+        console.error("Context: Error clearing localStorage", error);
+      }
+    }
   }, []);
 
-  // Method to check if all required previews are available
   const isBuilderComplete = useCallback(() => {
-    return !!(tastePreview && appearancePreview && packagingPreview);
-  }, [tastePreview, appearancePreview, packagingPreview]);
+    // Check based on the state object
+    return !!(
+      state.tastePreview &&
+      state.appearancePreview &&
+      state.packagingPreview
+    );
+  }, [state.tastePreview, state.appearancePreview, state.packagingPreview]);
+
+  // --- End Modified Context Functions ---
 
   return (
     <BuilderContext.Provider
       value={{
-        tastePreview,
-        appearancePreview,
-        packagingPreview,
-        basePrice,
-        appearancePrice,
-        packagingPrice,
-        totalPrice,
-        customText,
-        editingItemId, // Provide editingItemId in context
+        ...state, // Spread the state object
+        totalPrice, // Add calculated total price
         setTastePreview,
         setAppearancePreview,
         setPackagingPreview,

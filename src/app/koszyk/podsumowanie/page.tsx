@@ -3,7 +3,14 @@
 import Footer from "@/components/footer/footer";
 import Navbar from "@/components/navbar/navbar";
 import { Stepper } from "@/components/stepper";
-import { CreditCard, CreditCardIcon, ShoppingBag, Truck } from "lucide-react";
+import {
+  CreditCard,
+  CreditCardIcon,
+  ShoppingBag,
+  Truck,
+  Banknote,
+  AlertCircle,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -26,26 +33,53 @@ import {
 } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// Import the preview components from the preview-renderers file
 import {
   PackagingPreview,
   type PackagingPreviewProps,
 } from "@/components/preview-renderers";
 
-// Import our type definitions
 import { OrderSummary as OrderSummaryType } from "@/types/cart";
+
+const paymentOptions = [
+  {
+    id: "card",
+    name: "Karta płatnicza",
+    icon: <CreditCard className="h-5 w-5 mr-2" />,
+  },
+  {
+    id: "blik",
+    name: "BLIK",
+    icon: <span className="font-bold text-lg mr-2">B</span>,
+  },
+  {
+    id: "transfer",
+    name: "Przelew bankowy",
+    icon: <Banknote className="h-5 w-5 mr-2" />,
+  },
+];
 
 export default function OrderSummary() {
   const router = useRouter();
-  const { items, customerDetails, deliveryDetails, calculateTotal } = useCart();
+  const { items, customerDetails, deliveryDetails, calculateTotal, clearCart } =
+    useCart();
   const [promoCode, setPromoCode] = useState("");
   const [promoCodeStatus, setPromoCodeStatus] = useState<
     "valid" | "invalid" | "empty"
   >("empty");
   const [isPromoCodeTouched, setIsPromoCodeTouched] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>(
+    paymentOptions[0].id
+  );
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [blikCode, setBlikCode] = useState("");
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
-  // Redirect if any required data is missing
   useEffect(() => {
     if (
       items.length === 0 ||
@@ -62,22 +96,41 @@ export default function OrderSummary() {
     }
   }, [items, customerDetails, deliveryDetails, calculateTotal, router]);
 
-  // If data is loading/missing, show a simple loading state
   if (!customerDetails || !deliveryDetails || !calculateTotal) {
     return <div>Ładowanie danych...</div>;
   }
 
-  // Calculate order summary
   const { subtotal, deliveryFee, total } = calculateTotal();
 
-  // Payment info (mocked for now, would come from payment step)
-  const paymentMethod = "Karta płatnicza";
-  const cardNumber = "•••• •••• •••• 1234";
-
   const handleConfirmOrder = () => {
-    // In a real app, you'd handle order confirmation here
-    console.log("Order confirmed!");
+    setPaymentError(null);
+
+    if (selectedPaymentMethod === "card") {
+      if (!cardNumber || !cardExpiry || !cardCvv) {
+        setPaymentError("Proszę wypełnić wszystkie pola danych karty.");
+        return;
+      }
+      console.log("Processing card payment...");
+    } else if (selectedPaymentMethod === "blik") {
+      if (!blikCode || blikCode.length !== 6) {
+        setPaymentError("Proszę wprowadzić poprawny 6-cyfrowy kod BLIK.");
+        return;
+      }
+      console.log("Processing BLIK payment...");
+    } else if (selectedPaymentMethod === "transfer") {
+      console.log("Processing bank transfer order...");
+    }
+
+    console.log("Order confirmed with payment method:", selectedPaymentMethod);
     router.push("/koszyk/potwierdzenie");
+  };
+
+  const handleStepClick = (step: number) => {
+    if (step === 1) {
+      router.push("/koszyk");
+    } else if (step === 2) {
+      router.push("/koszyk/dostawa");
+    }
   };
 
   const formatDate = (date?: Date | string): string => {
@@ -91,7 +144,6 @@ export default function OrderSummary() {
     });
   };
 
-  // Utility function to check if preview data is valid with proper type
   const isValidPreviewData = <T extends object>(
     data: T | undefined
   ): data is T => {
@@ -130,6 +182,7 @@ export default function OrderSummary() {
           <Truck className="h-4 w-4" key="truck" />,
           <CreditCardIcon className="h-4 w-4" key="checkout" />,
         ]}
+        onStepClick={handleStepClick}
       />
 
       <div className="max-w-4xl mx-auto my-8 px-4">
@@ -256,6 +309,104 @@ export default function OrderSummary() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Metoda płatności
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RadioGroup
+                  value={selectedPaymentMethod}
+                  onValueChange={(value) => {
+                    setSelectedPaymentMethod(value);
+                    setPaymentError(null);
+                  }}
+                  className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4"
+                >
+                  {paymentOptions.map((option) => (
+                    <Label
+                      key={option.id}
+                      htmlFor={option.id}
+                      className={cn(
+                        "flex flex-col items-center justify-center space-y-2 rounded-md border border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:ring-1 [&:has([data-state=checked])]:ring-primary"
+                      )}
+                    >
+                      <RadioGroupItem
+                        value={option.id}
+                        id={option.id}
+                        className="sr-only"
+                      />
+                      {option.icon}
+                      <span className="text-sm font-medium text-center">
+                        {option.name}
+                      </span>
+                    </Label>
+                  ))}
+                </RadioGroup>
+
+                {selectedPaymentMethod === "card" && (
+                  <div className="space-y-3 mt-4 border-t pt-4">
+                    <Label htmlFor="card-number">Numer karty</Label>
+                    <Input
+                      id="card-number"
+                      placeholder="•••• •••• •••• ••••"
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(e.target.value)}
+                      required
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="card-expiry">
+                          Data ważności (MM/RR)
+                        </Label>
+                        <Input
+                          id="card-expiry"
+                          placeholder="MM/RR"
+                          value={cardExpiry}
+                          onChange={(e) => setCardExpiry(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="card-cvv">CVV</Label>
+                        <Input
+                          id="card-cvv"
+                          placeholder="•••"
+                          value={cardCvv}
+                          onChange={(e) => setCardCvv(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedPaymentMethod === "blik" && (
+                  <div className="space-y-3 mt-4 border-t pt-4">
+                    <Label htmlFor="blik-code">Kod BLIK</Label>
+                    <Input
+                      id="blik-code"
+                      placeholder="••••••"
+                      maxLength={6}
+                      value={blikCode}
+                      onChange={(e) => setBlikCode(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
+
+                {selectedPaymentMethod === "transfer" && (
+                  <div className="mt-4 border-t pt-4 text-sm text-muted-foreground">
+                    Zaczniemy przygotowywać Twoje zamówienie, gdy otrzymamy
+                    przelew bankowy. Dane do przelewu otrzymasz w potwierdzeniu
+                    zamówienia.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           <div className="space-y-6">
@@ -290,9 +441,24 @@ export default function OrderSummary() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex flex-col gap-2">
+                {paymentError && (
+                  <Alert variant="destructive" className="mb-2 w-full">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Błąd płatności</AlertTitle>
+                    <AlertDescription>{paymentError}</AlertDescription>
+                  </Alert>
+                )}
                 <Button onClick={handleConfirmOrder} className="w-full">
                   Potwierdź zamówienie
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push("/koszyk/dostawa")}
+                  className="w-full"
+                >
+                  Wróć do dostawy
                 </Button>
               </CardFooter>
             </Card>
@@ -339,19 +505,6 @@ export default function OrderSummary() {
                 </Card>
               </AccordionItem>
             </Accordion>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Metoda płatności
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="font-medium">{paymentMethod}</p>
-                <p className="text-sm text-muted-foreground">{cardNumber}</p>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>

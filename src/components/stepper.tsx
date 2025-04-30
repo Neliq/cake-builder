@@ -7,16 +7,16 @@ type StepperProps = {
   currentStep: number;
   steps: string[];
   className?: string;
-  onStepClick?: (step: number) => void;
-  icons?: React.ReactNode[]; // Add icons prop
+  onStepClick?: (step: number) => void; // Add onStepClick prop
+  icons?: React.ReactNode[];
 };
 
 export function Stepper({
   currentStep = 1,
   steps = ["Wygląd", "Smak", "Opakowanie"],
   className,
-  onStepClick,
-  icons, // Add icons to component props
+  onStepClick, // Destructure onStepClick
+  icons,
 }: StepperProps) {
   return (
     <div className={cn("w-full py-4", className)}>
@@ -39,7 +39,8 @@ export function Stepper({
             {/* Step button */}
             <button
               onClick={() => onStepClick?.(index + 1)}
-              disabled={!onStepClick}
+              // Enable clicking if onStepClick is provided AND it's a past or current step
+              disabled={!onStepClick || index + 1 > currentStep}
               className={cn(
                 "relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors",
                 index + 1 < currentStep
@@ -47,7 +48,8 @@ export function Stepper({
                   : index + 1 === currentStep
                   ? "border-primary bg-background text-primary"
                   : "border-muted bg-muted text-muted-foreground",
-                onStepClick && "cursor-pointer"
+                // Add cursor-pointer only if clickable
+                onStepClick && index + 1 <= currentStep && "cursor-pointer"
               )}
             >
               {index + 1 < currentStep ? (

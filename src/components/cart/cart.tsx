@@ -153,6 +153,9 @@ export default function Cart() {
           {items.length === 0 ? (
             <div className="text-center py-12 bg-muted rounded-lg">
               <p className="text-muted-foreground">Twój koszyk jest pusty</p>
+              <Link href="/kreator" className="mt-4 inline-block">
+                <Button>Stwórz tort</Button>
+              </Link>
             </div>
           ) : (
             <ScrollArea className="max-h-[400px]">

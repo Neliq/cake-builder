@@ -265,6 +265,14 @@ export default function Dostawa() {
     router.push("/koszyk/podsumowanie");
   }
 
+  // Handle stepper click
+  const handleStepClick = (step: number) => {
+    if (step === 1) {
+      router.push("/koszyk");
+    }
+    // No navigation for current or future steps
+  };
+
   return (
     <div>
       <Navbar />
@@ -276,6 +284,7 @@ export default function Dostawa() {
           <Truck className="h-4 w-4" key="truck" />,
           <CreditCardIcon className="h-4 w-4" key="checkout" />,
         ]}
+        onStepClick={handleStepClick} // Pass the handler
       />
 
       <div className="max-w-4xl mx-auto my-8 px-4">
@@ -734,7 +743,7 @@ export default function Dostawa() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.back()}
+                onClick={() => router.push("/koszyk")} // Use router.push for consistency
               >
                 Wróć do koszyka
               </Button>
