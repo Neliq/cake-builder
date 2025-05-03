@@ -13,8 +13,8 @@ export interface AppearancePreviewProps {
   data?: {
     shape?: CakeShape;
     baseColor?: string;
-    texts?: any[];
-    images?: any[];
+    texts?: unknown[];
+    images?: unknown[];
   };
 }
 

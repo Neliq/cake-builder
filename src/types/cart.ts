@@ -1,49 +1,29 @@
 import type {
-  AppearancePreview, // Assuming these are defined correctly elsewhere or adjust import
+  AppearancePreview,
   TastePreview,
   PackagingPreview,
-} from "./builder"; // Assuming builder types are here or adjust path
+} from "@/context/builder-context";
 
 export interface PackagingDetails {
   type: string;
+  size?: string;
   giftMessage?: string;
   recipientName?: string;
   imageUrl?: string;
-}
-
-export interface PackagingPreview extends PackagingDetails {
-  imageUrl: string;
-}
-
-export interface AppearancePreview {
-  images?: string[];
-  customText?: string;
-  decorationType?: string;
-  colors?: string[];
-  [key: string]: unknown; // Allow for additional properties
-}
-
-export interface TastePreview {
-  layers?: string[];
-  flavor?: string;
-  fillings?: string[];
-  [key: string]: unknown; // Allow for additional properties
 }
 
 export interface CartItem {
   id: string;
   name: string;
   customText?: string;
-  price: number; // Total price for the item (quantity * unit price) - or maybe unit price? Let's assume unit price for now.
+  price: number;
   quantity: number;
-  packagingDetails?: PackagingDetails; // Keep this for display details if needed
+  packagingDetails?: PackagingDetails;
 
-  // Store the actual preview data used for building/editing
-  tastePreview?: TastePreview | null; // Use types defined/imported
+  tastePreview?: TastePreview | null;
   appearancePreview?: AppearancePreview | null;
   packagingPreview?: PackagingPreview | null;
 
-  // Store individual price components for editing
   basePrice?: number;
   appearancePrice?: number;
   packagingPrice?: number;
@@ -94,8 +74,6 @@ export interface CartContextType {
   decreaseItem: (id: string) => void;
   removeItem: (id: string) => void;
   updateItem: (id: string, updatedData: Partial<CartItem>) => void;
+  clearCart: () => void;
   itemCount: number;
-}
-export interface BuilderContextTypeExtended extends BuilderContextData {
-  loadBuilderFromCartItem: (item: CartItem) => void; // Add loader function
 }

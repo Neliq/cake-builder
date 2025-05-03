@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCart } from "@/context/cart-context";
 import { useBuilder } from "@/context/builder-context"; // Import useBuilder hook
+import { CartItem } from "@/types/cart"; // Import CartItem type from types
 import {
   Tooltip,
   TooltipContent,
@@ -35,9 +36,6 @@ import {
   AppearancePreview,
   TastePreview,
   PackagingPreview,
-  type TastePreviewProps,
-  type AppearancePreviewProps,
-  type PackagingPreviewProps,
 } from "@/components/preview-renderers";
 
 export default function Cart() {
@@ -75,7 +73,7 @@ export default function Cart() {
 
   // Utility function to check if preview data is valid
   const isValidPreviewData = <T extends object>(
-    data: T | undefined
+    data: T | null | undefined // Allow null in the parameter type
   ): data is T => {
     return Boolean(
       data && typeof data === "object" && Object.keys(data).length > 0
@@ -83,7 +81,7 @@ export default function Cart() {
   };
 
   // Function to get taste preview data with fallback to builder context
-  const getTastePreview = (item: any) => {
+  const getTastePreview = (item: CartItem) => {
     // Debug which source we're using
     let source = "none";
     let result = undefined;
@@ -101,7 +99,7 @@ export default function Cart() {
   };
 
   // Function to get appearance preview data with fallback to builder context
-  const getAppearancePreview = (item: any) => {
+  const getAppearancePreview = (item: CartItem) => {
     // Debug which source we're using
     let source = "none";
     let result = undefined;
@@ -119,7 +117,7 @@ export default function Cart() {
   };
 
   // Function to get packaging preview data with fallback to builder context
-  const getPackagingPreview = (item: any) => {
+  const getPackagingPreview = (item: CartItem) => {
     // Debug which source we're using
     let source = "none";
     let result = undefined;

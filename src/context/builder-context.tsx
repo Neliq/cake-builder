@@ -15,7 +15,7 @@ import type { CartItem } from "@/types/cart"; // Import CartItem type
 export type CakeLayer = {
   id: string;
   name: string;
-  type: string;
+  type: "dough" | "sponge" | "jelly" | "fruit" | "cream" | "topping"; // Use specific union type
   color: string;
   height: number;
   price: number; // Added price field
@@ -24,7 +24,7 @@ export type CakeLayer = {
 export type CakeShape = {
   id: string;
   name: string;
-  type: string;
+  type: "circle" | "square" | "rectangle" | "heart" | "triangle"; // Use specific union type
   path?: string;
   aspectRatio?: number;
 };

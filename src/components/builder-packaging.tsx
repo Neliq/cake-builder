@@ -17,11 +17,16 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, Gift, Plus, ShoppingCart } from "lucide-react";
+import { CheckCircle2, Plus, ShoppingCart } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { useBuilder } from "@/context/builder-context";
 import { CartItem } from "@/types/cart";
 import { v4 as uuidv4 } from "uuid";
+import Image from "next/image";
+import {
+  AppearancePreview,
+  TastePreview,
+} from "@/components/preview-renderers";
 
 interface PackagingOption {
   id: string;
@@ -40,12 +45,10 @@ interface BuilderPackagingProps {
   };
 }
 
-export function BuilderPackaging({
-  cakeData = { basePrice: 89.99 },
-}: BuilderPackagingProps) {
+export function BuilderPackaging({}: BuilderPackagingProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const editId = searchParams.get("edit");
+  const editId = searchParams ? searchParams.get("edit") : null; // Fix: check for null
 
   const { addCustomCake, updateItem } = useCart();
 
@@ -57,7 +60,6 @@ export function BuilderPackaging({
     setPackagingPreview,
     basePrice = 0,
     appearancePrice = 0,
-    packagingPrice: contextPackagingPrice,
     customText,
     resetBuilder,
   } = builderContext;
@@ -153,6 +155,7 @@ export function BuilderPackaging({
 
     const packagingPreviewData = {
       type: selectedOption.name,
+      size: "standard", // Add a default size
       giftMessage: giftMessage,
       recipientName: recipientName,
       imageUrl: selectedOption.imageUrl,
@@ -172,7 +175,7 @@ export function BuilderPackaging({
       tastePreview: tastePreview,
       appearancePreview: appearancePreview,
       packagingPreview: packagingPreviewData,
-      customText: customText,
+      customText: customText ?? undefined, // Convert null to undefined
       packagingDetails: {
         type: selectedOption.name,
         giftMessage: giftMessage || undefined,
@@ -220,43 +223,53 @@ export function BuilderPackaging({
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
-              <div className="w-full aspect-square relative rounded-lg overflow-hidden border mb-4">
-                <img
+              <div className="w-full relative rounded-lg overflow-hidden border mb-4">
+                <Image
                   src={
                     getSelectedPackagingOption().imageUrl ||
                     "/packagings/default-box.jpg"
                   }
                   alt="Packaging preview"
-                  className="object-cover w-full h-full"
+                  className="object-cover w-full h-auto"
+                  width={300}
+                  height={300}
                 />
               </div>
 
               <div className="grid grid-cols-3 gap-2 w-full">
-                <div className="aspect-square relative rounded border overflow-hidden">
-                  <img
-                    src={appearancePreview || "/cakes/default-appearance.jpg"}
-                    alt="Appearance preview"
-                    className="object-cover w-full h-full"
-                  />
+                <div className="relative rounded border overflow-hidden">
+                  {/* Appearance preview */}
+                  {appearancePreview ? (
+                    <AppearancePreview data={appearancePreview} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <span className="text-xs text-gray-400">No preview</span>
+                    </div>
+                  )}
                   <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs py-1 text-center">
                     Wygląd
                   </span>
                 </div>
-                <div className="aspect-square relative rounded border overflow-hidden">
-                  <img
-                    src={tastePreview || "/cakes/default-taste.jpg"}
-                    alt="Taste preview"
-                    className="object-cover w-full h-full"
-                  />
+                <div className="relative rounded border overflow-hidden">
+                  {/* Taste preview */}
+                  {tastePreview ? (
+                    <TastePreview data={tastePreview} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <span className="text-xs text-gray-400">No preview</span>
+                    </div>
+                  )}
                   <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs py-1 text-center">
                     Smak
                   </span>
                 </div>
-                <div className="aspect-square relative rounded border overflow-hidden bg-muted">
-                  <img
+                <div className="relative rounded border overflow-hidden bg-muted">
+                  <Image
                     src={getPackagingPreview()}
                     alt="Packaging preview"
-                    className="object-cover w-full h-full"
+                    className="object-cover w-full h-auto"
+                    width={300}
+                    height={300}
                   />
                   <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs py-1 text-center">
                     Opakowanie
@@ -340,7 +353,7 @@ export function BuilderPackaging({
                         {packagingOptions.map((option) => (
                           <div
                             key={option.id}
-                            className="flex items-start space-x-2"
+                            className="flex items-start space-x-2 h-full"
                           >
                             <RadioGroupItem
                               value={option.id}
@@ -349,41 +362,37 @@ export function BuilderPackaging({
                             />
                             <Label
                               htmlFor={`packaging-${option.id}`}
-                              className="flex-1 cursor-pointer"
+                              className="flex-1 cursor-pointer h-full"
                             >
                               <Card
-                                className={`overflow-hidden transition-all ${
+                                className={`overflow-hidden transition-all h-full flex flex-col w-full ${
                                   selectedPackaging === option.id
                                     ? "ring-2 ring-primary"
                                     : ""
                                 }`}
                               >
-                                <div className="aspect-video w-full relative">
-                                  <img
-                                    src={
-                                      option.imageUrl ||
-                                      "/packagings/default-box.jpg"
-                                    }
+                                <div className="aspect-square relative w-full mb-2">
+                                  <Image
+                                    src={option.imageUrl}
                                     alt={option.name}
-                                    className="object-cover w-full h-full"
+                                    fill
+                                    className="object-cover"
                                   />
                                 </div>
-                                <CardContent className="p-3">
-                                  <div className="font-medium">
+                                <CardHeader className="p-3">
+                                  <CardTitle className="text-base">
                                     {option.name}
-                                  </div>
-                                  <p className="text-sm text-muted-foreground">
+                                  </CardTitle>
+                                  <CardDescription className="text-xs">
                                     {option.description}
+                                  </CardDescription>
+                                </CardHeader>
+                                <CardContent className="p-3 pt-0">
+                                  <p className="text-sm font-medium">
+                                    {option.price > 0
+                                      ? `+ ${option.price.toFixed(2)} zł`
+                                      : "W cenie"}
                                   </p>
-                                  <div className="text-sm mt-1">
-                                    {option.price === 0 ? (
-                                      <span className="text-green-600">
-                                        Bez dopłaty
-                                      </span>
-                                    ) : (
-                                      <span>+{option.price.toFixed(2)} zł</span>
-                                    )}
-                                  </div>
                                 </CardContent>
                               </Card>
                             </Label>
@@ -395,79 +404,48 @@ export function BuilderPackaging({
                 </TabsContent>
 
                 <TabsContent value="message">
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     <div>
-                      <h3 className="text-lg font-medium mb-3">
-                        Dodaj wiadomość do prezentu
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Jeśli tort jest prezentem, możesz dodać dedykację, która
-                        zostanie dołączona do opakowania.
+                      <Label htmlFor="recipientName">Imię odbiorcy</Label>
+                      <Input
+                        id="recipientName"
+                        value={recipientName}
+                        onChange={(e) => setRecipientName(e.target.value)}
+                        placeholder="Np. Anna"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="giftMessage">Wiadomość prezentowa</Label>
+                      <Textarea
+                        id="giftMessage"
+                        value={giftMessage}
+                        onChange={(e) => setGiftMessage(e.target.value)}
+                        placeholder="Wpisz swoją wiadomość (opcjonalnie)"
+                        rows={4}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Twoja wiadomość zostanie dołączona do zamówienia na
+                        eleganckiej karteczce.
                       </p>
-
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="recipient-name">
-                            Dla kogo (opcjonalnie)
-                          </Label>
-                          <Input
-                            id="recipient-name"
-                            placeholder="Imię odbiorcy"
-                            value={recipientName}
-                            onChange={(e) => setRecipientName(e.target.value)}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="gift-message">
-                            Wiadomość (opcjonalnie)
-                          </Label>
-                          <Textarea
-                            id="gift-message"
-                            placeholder="Wpisz swoją wiadomość..."
-                            value={giftMessage}
-                            onChange={(e) => setGiftMessage(e.target.value)}
-                            className="min-h-[120px]"
-                          />
-                        </div>
-
-                        <div className="flex items-center p-3 bg-muted/50 rounded-lg text-sm">
-                          <Gift className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span className="text-muted-foreground">
-                            Wiadomość zostanie wydrukowana na eleganckim
-                            papierze i dołączona do tortu
-                          </span>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </TabsContent>
               </Tabs>
             </CardContent>
-
-            <CardFooter className="flex flex-col sm:flex-row gap-3 pt-6">
+            <CardFooter className="flex flex-col sm:flex-row justify-between gap-2 pt-6">
               <Button
                 variant="outline"
-                size="lg"
-                className="w-full sm:w-auto"
                 onClick={handleAddToCartAndContinue}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                {editId
-                  ? "Zaktualizuj i stwórz kolejny tort"
-                  : "Zapisz i stwórz kolejny tort"}
-              </Button>
-
-              <Button
-                variant="default"
-                size="lg"
                 className="w-full sm:w-auto"
-                onClick={handleAddToCartAndCheckout}
               >
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                {editId
-                  ? "Zaktualizuj i przejdź do podsumowania"
-                  : "Zapisz i przejdź do podsumowania"}
+                <Plus className="mr-2 h-4 w-4" /> Dodaj i kontynuuj
+              </Button>
+              <Button
+                onClick={handleAddToCartAndCheckout}
+                className="w-full sm:w-auto"
+              >
+                <ShoppingCart className="mr-2 h-4 w-4" /> Dodaj i przejdź do
+                kasy
               </Button>
             </CardFooter>
           </Card>

@@ -371,7 +371,6 @@ export default function CakeAppearanceBuilder() {
     setAppearancePreview,
     basePrice,
     appearancePreview: contextAppearancePreview,
-    customText: contextCustomText,
   } = useBuilder();
 
   const [appearance, setAppearance] = useState<CakeAppearance>({
@@ -393,7 +392,7 @@ export default function CakeAppearanceBuilder() {
   const cakePreviewRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const editId = searchParams.get("edit");
+  const editId = searchParams?.get("edit");
 
   useEffect(() => {
     if (contextAppearancePreview) {

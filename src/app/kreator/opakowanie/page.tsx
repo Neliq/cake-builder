@@ -16,14 +16,13 @@ function OpakowanieContent() {
   const {
     loadBuilderFromCartItem,
     resetBuilder,
-    appearancePreview, // Keep appearancePreview to potentially check if navigation is valid
     editingItemId, // Get the editingItemId from context
   } = useBuilder();
 
   const handleStepClick = (step: number) => {
     const currentStep = 3; // This page is step 3
     if (step <= currentStep) {
-      const editId = searchParams.get("edit");
+      const editId = searchParams?.get("edit"); // Use optional chaining
       let path = "";
       switch (step) {
         case 1:
@@ -44,7 +43,7 @@ function OpakowanieContent() {
   };
 
   useEffect(() => {
-    const editId = searchParams.get("edit");
+    const editId = searchParams?.get("edit"); // Use optional chaining
 
     if (editId) {
       // Only load if the context doesn't already hold data for this editId

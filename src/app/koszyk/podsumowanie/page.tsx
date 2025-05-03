@@ -42,8 +42,6 @@ import {
   type PackagingPreviewProps,
 } from "@/components/preview-renderers";
 
-import { OrderSummary as OrderSummaryType } from "@/types/cart";
-
 const paymentOptions = [
   {
     id: "card",
@@ -64,8 +62,7 @@ const paymentOptions = [
 
 export default function OrderSummary() {
   const router = useRouter();
-  const { items, customerDetails, deliveryDetails, calculateTotal, clearCart } =
-    useCart();
+  const { items, customerDetails, deliveryDetails, calculateTotal } = useCart();
   const [promoCode, setPromoCode] = useState("");
   const [promoCodeStatus, setPromoCodeStatus] = useState<
     "valid" | "invalid" | "empty"
@@ -145,7 +142,7 @@ export default function OrderSummary() {
   };
 
   const isValidPreviewData = <T extends object>(
-    data: T | undefined
+    data: T | null | undefined
   ): data is T => {
     return Boolean(
       data && typeof data === "object" && Object.keys(data).length > 0

@@ -4,11 +4,21 @@ import Navbar from "@/components/navbar/navbar";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-// Sample cake data
-const cakes = [
+// Define the type for a single cake
+interface Cake {
+  id: number;
+  name: string;
+  image: string;
+  layersImage: string;
+  productionDate: string;
+  price: number;
+  layers: string[];
+}
+
+// Sample cake data (using the Cake type)
+const cakes: Cake[] = [
   {
     id: 1,
     name: "Chocolate Dream",
@@ -52,12 +62,22 @@ const cakes = [
   },
 ];
 
-// CakeCard component
-function CakeCard({ cake, onImport }) {
+// Define props type for CakeCard
+interface CakeCardProps {
+  cake: Cake;
+  onImport: (cake: Cake) => void;
+}
+
+// CakeCard component with typed props
+function CakeCard({ cake, onImport }: CakeCardProps) {
   const [isHovering, setIsHovering] = useState(false);
 
-  const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "long", day: "numeric" };
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
@@ -145,7 +165,7 @@ function CakeCard({ cake, onImport }) {
 export default function Torty() {
   const router = useRouter();
 
-  const handleImport = (cake) => {
+  const handleImport = (cake: Cake) => {
     localStorage.setItem(
       "importedCakeConfig",
       JSON.stringify({

@@ -46,12 +46,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useRouter, useSearchParams } from "next/navigation"; // Updated import for App Router
 import { useBuilder } from "@/context/builder-context"; // Import the builder context
+import { Wine, Wheat } from "lucide-react"; // Import icons
 
 // Define types for cake layers and addons
 type CakeLayer = {
   id: string;
   name: string;
-  type: string;
+  type: "dough" | "sponge" | "jelly" | "fruit" | "cream" | "topping"; // <-- make type match Addon
   color: string;
   height: number;
   price: number;
@@ -64,6 +65,8 @@ type Addon = {
   color: string;
   height: number;
   price: number; // Add price field
+  containsAlcohol?: boolean; // Optional: Indicates alcohol content
+  allergens?: string[]; // Optional: List of potential allergens
 };
 
 // Sample data for addons
@@ -76,6 +79,7 @@ const addons: Addon[] = [
     color: "#F5DEB3",
     height: 20,
     price: 12.99,
+    allergens: ["Gluten", "Eggs", "Milk"],
   },
   {
     id: "d2",
@@ -84,6 +88,7 @@ const addons: Addon[] = [
     color: "#8B4513",
     height: 20,
     price: 14.99,
+    allergens: ["Gluten", "Eggs", "Milk", "Soy"],
   },
   {
     id: "d3",
@@ -92,6 +97,7 @@ const addons: Addon[] = [
     color: "#B22222",
     height: 20,
     price: 16.99,
+    allergens: ["Gluten", "Eggs", "Milk"],
   },
 
   // Sponges
@@ -102,6 +108,7 @@ const addons: Addon[] = [
     color: "#FFFACD",
     height: 30,
     price: 9.99,
+    allergens: ["Gluten", "Eggs", "Milk"],
   },
   {
     id: "s2",
@@ -110,6 +117,17 @@ const addons: Addon[] = [
     color: "#5C4033",
     height: 30,
     price: 11.99,
+    allergens: ["Gluten", "Eggs", "Milk", "Soy"],
+  },
+  {
+    id: "s3", // Example with alcohol
+    name: "Rum Sponge",
+    type: "sponge",
+    color: "#D2B48C",
+    height: 30,
+    price: 13.99,
+    containsAlcohol: true,
+    allergens: ["Gluten", "Eggs", "Milk"],
   },
 
   // Jellies
@@ -156,6 +174,7 @@ const addons: Addon[] = [
     color: "#FFFFFF",
     height: 15,
     price: 4.99,
+    allergens: ["Milk"],
   },
   {
     id: "c2",
@@ -164,6 +183,17 @@ const addons: Addon[] = [
     color: "#FFFDD0",
     height: 15,
     price: 6.99,
+    allergens: ["Milk"],
+  },
+  {
+    id: "c3", // Example with alcohol
+    name: "Irish Cream",
+    type: "cream",
+    color: "#E1C699",
+    height: 15,
+    price: 8.99,
+    containsAlcohol: true,
+    allergens: ["Milk"],
   },
 
   // Toppings
@@ -174,6 +204,7 @@ const addons: Addon[] = [
     color: "#3D2314",
     height: 8,
     price: 7.99,
+    allergens: ["Milk", "Soy"],
   },
   {
     id: "t2",
@@ -198,6 +229,7 @@ const addons: Addon[] = [
     color: "#8B4513",
     height: 8,
     price: 6.99,
+    allergens: ["Nuts"], // Example allergen
   },
   {
     id: "t5",
@@ -214,6 +246,7 @@ const addons: Addon[] = [
     color: "#FFFFFF",
     height: 8,
     price: 5.99,
+    allergens: ["Coconut"], // Example allergen
   },
 ];
 
@@ -301,7 +334,7 @@ export default function CakeBuilder({
   const [layerLimitReached, setLayerLimitReached] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams(); // Get search params
-  const editId = searchParams.get("edit"); // Get the edit ID if present
+  const editId = searchParams?.get("edit"); // Get the edit ID if present
 
   // Maximum number of layers
   const MAX_LAYERS = 12;
@@ -338,6 +371,8 @@ export default function CakeBuilder({
         tastePreview.layers.map((layer) => ({
           ...layer,
           id: layer.id || `ctx_${Math.random()}`,
+          // Explicitly cast the type to satisfy the component's CakeLayer type
+          type: layer.type as CakeLayer["type"],
         }))
       );
     }
@@ -365,7 +400,7 @@ export default function CakeBuilder({
           }
           return null;
         })
-        .filter((layer): layer is CakeLayer => layer !== null);
+        .filter((layer): layer is CakeLayer => layer !== null); // Filter out nulls
 
       if (importedLayers.length > 0) {
         setCakeLayers(importedLayers);
@@ -908,22 +943,63 @@ export default function CakeBuilder({
                         .map((addon) => (
                           <Card
                             key={addon.id}
-                            className="min-w-[100px] w-[120px] shrink-0 py-2"
+                            className="min-w-[100px] w-[120px] shrink-0 py-2 flex flex-col justify-between" // Added flex classes
                           >
-                            <CardHeader className="px-2">
-                              <CardTitle className="text-xs text-center break-words min-h-[32px]">
-                                {addon.name}
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="px-2">
-                              <div
-                                className="w-full h-6 rounded aspect-square"
-                                style={{ backgroundColor: addon.color }}
-                              ></div>
-                              <div className="text-center mt-2 text-sm font-medium">
-                                {addon.price.toFixed(2)} zł
-                              </div>
-                            </CardContent>
+                            <div>
+                              {" "}
+                              {/* Wrapper for top content */}
+                              <CardHeader className="px-2 pt-2 pb-1">
+                                {" "}
+                                {/* Adjusted padding */}
+                                <CardTitle className="text-xs text-center break-words min-h-[32px]">
+                                  {addon.name}
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="px-2 pb-1">
+                                {" "}
+                                {/* Adjusted padding */}
+                                <div
+                                  className="w-full h-6 rounded aspect-square mb-1" // Added margin-bottom
+                                  style={{ backgroundColor: addon.color }}
+                                ></div>
+                                <div className="text-center text-sm font-medium">
+                                  {addon.price.toFixed(2)} zł
+                                </div>
+                                {/* Icons for Alcohol and Allergens */}
+                                <div className="flex justify-center items-center space-x-2 mt-1 h-5">
+                                  {" "}
+                                  {/* Container for icons */}
+                                  {addon.containsAlcohol && (
+                                    <TooltipProvider delayDuration={100}>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Wine className="h-4 w-4 text-purple-600" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Zawiera alkohol</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                  {addon.allergens &&
+                                    addon.allergens.length > 0 && (
+                                      <TooltipProvider delayDuration={100}>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Wheat className="h-4 w-4 text-orange-600" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>
+                                              Może zawierać alergeny:{" "}
+                                              {addon.allergens.join(", ")}
+                                            </p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                </div>
+                              </CardContent>
+                            </div>
                             <CardFooter className="px-2 pt-0">
                               <Button
                                 onClick={(e) => addLayer(addon, e)} // Pass the event object

@@ -22,7 +22,7 @@ function KreatorContent() {
   const handleStepClick = (step: number) => {
     const currentStep = 1; // This page is step 1
     if (step <= currentStep) {
-      const editId = searchParams.get("edit");
+      const editId = searchParams?.get("edit"); // Use optional chaining
       let path = "";
       switch (step) {
         case 1:
@@ -36,7 +36,7 @@ function KreatorContent() {
       // Only navigate if the path changes (or if forcing a refresh is desired)
       if (
         window.location.pathname !== finalPath.split("?")[0] ||
-        searchParams.get("edit") !== editId
+        searchParams?.get("edit") !== editId // Use optional chaining
       ) {
         router.push(finalPath);
       }
@@ -44,7 +44,7 @@ function KreatorContent() {
   };
 
   useEffect(() => {
-    const editId = searchParams.get("edit");
+    const editId = searchParams?.get("edit"); // Use optional chaining
 
     if (editId) {
       // Editing: Load only if the editId is different from the context's editingItemId
@@ -108,23 +108,6 @@ function KreatorContent() {
     resetBuilder,
     editingItemId,
   ]);
-
-  // Function to check localStorage (extracted from original useEffect)
-  const checkLocalStorageImport = () => {
-    try {
-      const importedData = localStorage.getItem("importedCakeConfig");
-      if (importedData) {
-        const { layers } = JSON.parse(importedData);
-        if (Array.isArray(layers)) {
-          setImportedLayerNames(layers);
-        }
-        // Optional: remove from localStorage after reading
-        // localStorage.removeItem("importedCakeConfig");
-      }
-    } catch (error) {
-      console.error("Error reading imported cake config:", error);
-    }
-  };
 
   return (
     <div>
