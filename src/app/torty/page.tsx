@@ -97,7 +97,7 @@ function CakeCard({ cake, onImport }: CakeCardProps) {
             className="transition-opacity duration-300"
           />
         ) : (
-          <div className="h-full w-full flex flex-col items-center justify-center bg-amber-50 p-4">
+          <div className="h-full w-full flex flex-col items-center justify-center bg-card p-4">
             <h3 className="text-lg font-semibold mb-2">Warstwy Smakowe</h3>
             <div className="w-full">
               {cake.layers.map((layer, index) => {

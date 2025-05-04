@@ -689,7 +689,7 @@ export default function CakeBuilder({
               {/* Inner container with fixed height and overflow hidden */}
               <div className="flex flex-col ">
                 <h3 className="text-lg font-medium mb-2">Wymagania</h3>
-                <ul className="space-y-2 bg-white p-4 rounded-md border">
+                <ul className="space-y-2 bg-card p-4 rounded-md border">
                   {/* At least 3 layers requirement */}
                   <li
                     className={`flex items-center ${
@@ -878,7 +878,7 @@ export default function CakeBuilder({
                 </ul>
 
                 {/* Price Display container */}
-                <div className="mt-4 border-t pt-4 flex flex-col bg-white p-4 rounded-md border">
+                <div className="mt-4 border-t pt-4 flex flex-col bg-card p-4 rounded-md border">
                   <h3 className="text-lg font-medium mb-2 flex-shrink-0">
                     Rozkład Cen
                   </h3>

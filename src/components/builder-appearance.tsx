@@ -92,7 +92,6 @@ const cakeShapes: CakeShape[] = [
 ];
 
 const baseColors = [
-  { id: "white", name: "Biały", value: "#FFFFFF" },
   { id: "cream", name: "Kremowy", value: "#FFF8DC" },
   { id: "pink", name: "Różowy", value: "#FFB6C1" },
   { id: "blue", name: "Niebieski", value: "#87CEFA" },
@@ -847,7 +846,7 @@ export default function CakeAppearanceBuilder() {
             <div className="flex flex-col items-center">
               <div
                 ref={cakePreviewRef}
-                className="relative bg-white rounded-lg p-4 w-[350px] h-[350px] flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300"
+                className="relative bg-card rounded-lg p-4 w-[350px] h-[350px] flex items-center justify-center overflow-hidden border-2 border-dashed border-border"
                 onClick={handleCanvasClick}
               >
                 <div className="relative">
@@ -879,7 +878,7 @@ export default function CakeAppearanceBuilder() {
             </div>
 
             <div className="flex flex-col space-y-4">
-              <div className="bg-white p-4 rounded-md border">
+              <div className="bg-card p-4 rounded-md border">
                 <h3 className="font-medium text-lg mb-2">Instrukcje</h3>
                 <ul className="text-sm space-y-1 list-disc list-inside">
                   <li>Wybierz kształt i kolor tortu poniżej</li>
@@ -889,7 +888,7 @@ export default function CakeAppearanceBuilder() {
                 </ul>
               </div>
 
-              <div className="bg-white p-4 rounded-md border">
+              <div className="bg-card p-4 rounded-md border">
                 <h3 className="font-medium text-lg mb-2">Rozkład Cen</h3>
                 <div className="space-y-1">
                   <div className="flex justify-between">

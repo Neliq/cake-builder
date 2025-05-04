@@ -42,7 +42,7 @@ export function TastePreview({ data }: TastePreviewProps) {
   console.log("TastePreview rendering with data:", data);
 
   return (
-    <div className="w-full h-full flex flex-col justify-end bg-gray-50">
+    <div className="w-full h-full flex flex-col justify-end bg-card">
       {/* Render layers from bottom to top */}
       {[...data.layers].reverse().map((layer, index) => (
         <div
@@ -135,7 +135,7 @@ export function AppearancePreview({ data }: AppearancePreviewProps) {
   };
 
   return (
-    <div className="w-full h-full bg-gray-50 flex items-center justify-center">
+    <div className="w-full h-full bg-card flex items-center justify-center">
       {renderShape()}
       {/* We're not rendering texts and images in this simplified preview */}
     </div>
