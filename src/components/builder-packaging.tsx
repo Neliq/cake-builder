@@ -438,13 +438,13 @@ export function BuilderPackaging({}: BuilderPackagingProps) {
                 onClick={handleAddToCartAndContinue}
                 className="w-full sm:w-auto"
               >
-                <Plus className="mr-2 h-4 w-4" /> Dodaj i kontynuuj
+                <Plus className="mr-2 h-4 w-4" /> Zapisz i stwórz kolejny
               </Button>
               <Button
                 onClick={handleAddToCartAndCheckout}
                 className="w-full sm:w-auto"
               >
-                <ShoppingCart className="mr-2 h-4 w-4" /> Dodaj i przejdź do
+                <ShoppingCart className="mr-2 h-4 w-4" /> Zapisz i przejdź do
                 kasy
               </Button>
             </CardFooter>

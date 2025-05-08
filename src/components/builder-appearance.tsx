@@ -393,6 +393,8 @@ export default function CakeAppearanceBuilder() {
   const searchParams = useSearchParams();
   const editId = searchParams?.get("edit");
 
+  const cakeDisplaySize = 300; // Define cake display size
+
   useEffect(() => {
     if (contextAppearancePreview) {
       setAppearance({
@@ -724,13 +726,7 @@ export default function CakeAppearanceBuilder() {
   };
 
   const handleCanvasClick = (e: React.MouseEvent) => {
-    const isTargetCakePreview =
-      e.target === cakePreviewRef.current ||
-      e.currentTarget === cakePreviewRef.current ||
-      e.target === (renderCakeShape() as unknown as EventTarget) ||
-      e.currentTarget.contains(e.target as Node);
-
-    if (isTargetCakePreview) {
+    if (e.target === e.currentTarget) {
       setSelectedElement(null);
       setSelectedTextElement(null);
       setNewText("");
@@ -846,10 +842,61 @@ export default function CakeAppearanceBuilder() {
             <div className="flex flex-col items-center">
               <div
                 ref={cakePreviewRef}
-                className="relative bg-card rounded-lg p-4 w-[350px] h-[350px] flex items-center justify-center overflow-hidden border-2 border-dashed border-border"
-                onClick={handleCanvasClick}
+                className="relative bg-card rounded-lg p-4 w-[350px] h-[350px] flex items-center justify-center border-2 border-dashed border-border"
               >
-                <div className="relative">
+                <div
+                  className="relative"
+                  style={{
+                    width: `${cakeDisplaySize}px`,
+                    height:
+                      appearance.shape.type === "rectangle" &&
+                      appearance.shape.aspectRatio
+                        ? `${cakeDisplaySize / appearance.shape.aspectRatio}px`
+                        : `${cakeDisplaySize}px`,
+                    overflow: "hidden",
+                    borderRadius: (() => {
+                      switch (appearance.shape.type) {
+                        case "circle":
+                          return "50%";
+                        case "square":
+                          return "8px";
+                        case "rectangle":
+                          return "8px";
+                        default:
+                          return "0px";
+                      }
+                    })(),
+                    clipPath:
+                      (appearance.shape.type === "heart" ||
+                        appearance.shape.type === "triangle") &&
+                      appearance.shape.path
+                        ? `url(#cakeClipPath)`
+                        : undefined,
+                  }}
+                  onClick={handleCanvasClick}
+                >
+                  {(appearance.shape.type === "heart" ||
+                    appearance.shape.type === "triangle") &&
+                    appearance.shape.path && (
+                      <svg
+                        width="0"
+                        height="0"
+                        style={{ position: "absolute" }}
+                      >
+                        <defs>
+                          <clipPath
+                            id="cakeClipPath"
+                            clipPathUnits="objectBoundingBox"
+                          >
+                            <path
+                              d={appearance.shape.path}
+                              transform="scale(0.041666666666666664)"
+                            />
+                          </clipPath>
+                        </defs>
+                      </svg>
+                    )}
+
                   {renderCakeShape()}
 
                   {appearance.texts.map((text) => (
@@ -963,7 +1010,7 @@ export default function CakeAppearanceBuilder() {
               </div>
 
               {selectedElement && (
-                <div className="bg-white p-4 rounded-md border">
+                <div className="bg-card p-4 rounded-md border">
                   <h3 className="font-medium text-lg mb-2">Wybrany Element</h3>
                   {selectedElement.startsWith("text_") ? (
                     <div className="space-y-2">

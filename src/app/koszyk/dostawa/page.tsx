@@ -144,7 +144,11 @@ export default function Dostawa() {
     deliveryDetails,
     setCustomerDetails,
     setDeliveryDetails,
+    calculateTotal, // <-- make sure this is destructured
   } = useCart();
+
+  // Calculate current total price for delivery fee logic
+  const orderTotal = calculateTotal ? calculateTotal().subtotal : 0;
 
   // Track the delivery method separately to conditionally render UI elements
   const [deliveryMethod, setDeliveryMethod] = useState<"shipping" | "pickup">(
@@ -315,7 +319,10 @@ export default function Dostawa() {
                             </FormControl>
                             <FormLabel className="font-normal flex items-center">
                               <Truck className="h-4 w-4 mr-2" />
-                              Dostawa do domu
+                              Dostawa
+                              <span className="">
+                                {orderTotal < 100 ? "(+15zł)" : "(darmowa)"}
+                              </span>
                             </FormLabel>
                           </FormItem>
 
@@ -399,7 +406,7 @@ export default function Dostawa() {
                             <FormLabel>Nazwa firmy *</FormLabel>
                             <FormControl>
                               <Input
-                                placeholder="Nazwa Sp. z o.o."
+                                placeholder="np. Nazwa Sp. z o.o."
                                 {...field}
                               />
                             </FormControl>
@@ -415,7 +422,7 @@ export default function Dostawa() {
                           <FormItem>
                             <FormLabel>NIP *</FormLabel>
                             <FormControl>
-                              <Input placeholder="1234567890" {...field} />
+                              <Input placeholder="np. 1234567890" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -433,7 +440,7 @@ export default function Dostawa() {
                         <FormItem>
                           <FormLabel>Imię *</FormLabel>
                           <FormControl>
-                            <Input placeholder="Jan" {...field} />
+                            <Input placeholder="np. Jan" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -447,7 +454,7 @@ export default function Dostawa() {
                         <FormItem>
                           <FormLabel>Nazwisko *</FormLabel>
                           <FormControl>
-                            <Input placeholder="Kowalski" {...field} />
+                            <Input placeholder="np. Kowalski" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -463,7 +470,7 @@ export default function Dostawa() {
                           <FormControl>
                             <Input
                               type="email"
-                              placeholder="jan.kowalski@example.com"
+                              placeholder="np. jan.kowalski@example.com"
                               {...field}
                             />
                           </FormControl>
@@ -481,7 +488,7 @@ export default function Dostawa() {
                           <FormControl>
                             <Input
                               type="tel"
-                              placeholder="48123456789"
+                              placeholder="np. 48123456789"
                               {...field}
                             />
                           </FormControl>
@@ -509,7 +516,7 @@ export default function Dostawa() {
                         <FormItem className="md:col-span-2">
                           <FormLabel>Ulica *</FormLabel>
                           <FormControl>
-                            <Input placeholder="Marszałkowska" {...field} />
+                            <Input placeholder="np. Marszałkowska" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -523,7 +530,7 @@ export default function Dostawa() {
                         <FormItem>
                           <FormLabel>Numer budynku *</FormLabel>
                           <FormControl>
-                            <Input placeholder="42" {...field} />
+                            <Input placeholder="np. 42" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -537,7 +544,7 @@ export default function Dostawa() {
                         <FormItem>
                           <FormLabel>Numer mieszkania</FormLabel>
                           <FormControl>
-                            <Input placeholder="10" {...field} />
+                            <Input placeholder="np. 10" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -551,7 +558,7 @@ export default function Dostawa() {
                         <FormItem>
                           <FormLabel>Miasto *</FormLabel>
                           <FormControl>
-                            <Input placeholder="Warszawa" {...field} />
+                            <Input placeholder="np. Warszawa" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -565,7 +572,7 @@ export default function Dostawa() {
                         <FormItem>
                           <FormLabel>Kod pocztowy *</FormLabel>
                           <FormControl>
-                            <Input placeholder="00-001" {...field} />
+                            <Input placeholder="np. 00-001" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -686,7 +693,7 @@ export default function Dostawa() {
                     control={form.control}
                     name="deliveryTime"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>
                           {deliveryMethod === "shipping"
                             ? "Preferowana godzina dostawy *"
@@ -724,8 +731,8 @@ export default function Dostawa() {
                           <Textarea
                             placeholder={
                               deliveryMethod === "shipping"
-                                ? "Np. kod do bramy, piętro, szczegóły dotyczące dostawy..."
-                                : "Np. dodatkowe informacje dot. odbioru..."
+                                ? "np. kod do bramy, piętro, szczegóły dotyczące dostawy..."
+                                : "np. dodatkowe informacje dot. odbioru..."
                             }
                             className="min-h-[80px]"
                             {...field}

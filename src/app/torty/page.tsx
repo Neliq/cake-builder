@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 
+// LocalStorage key for builder context - must match the one in builder-context.tsx
+const LOCAL_STORAGE_KEY = "cakeBuilderState";
+
 // Define the type for a single cake
 interface Cake {
   id: number;
@@ -26,7 +29,11 @@ const cakes: Cake[] = [
     layersImage: "/images/layers1.jpg",
     productionDate: "2023-05-15",
     price: 299,
-    layers: ["Chocolate Dough", "Vanilla Sponge", "Strawberry Jelly"],
+    layers: [
+      "Ciasto Czekoladowe",
+      "Biszkopt Waniliowy",
+      "Galaretka Truskawkowa",
+    ],
   },
   {
     id: 2,
@@ -35,7 +42,7 @@ const cakes: Cake[] = [
     layersImage: "/images/layers2.jpg",
     productionDate: "2023-06-22",
     price: 349,
-    layers: ["Vanilla Dough", "Blueberry Jelly", "Whipped Cream"],
+    layers: ["Ciasto Waniliowe", "Galaretka Jagodowa", "Bita Śmietana"],
   },
   {
     id: 3,
@@ -45,10 +52,10 @@ const cakes: Cake[] = [
     productionDate: "2023-07-10",
     price: 499,
     layers: [
-      "Vanilla Dough",
-      "Buttercream",
-      "Vanilla Sponge",
-      "Chocolate Ganache",
+      "Ciasto Waniliowe",
+      "Krem Maślany",
+      "Biszkopt Waniliowy",
+      "Ganache Czekoladowy",
     ],
   },
   {
@@ -58,7 +65,7 @@ const cakes: Cake[] = [
     layersImage: "/images/layers4.jpg",
     productionDate: "2023-08-05",
     price: 279,
-    layers: ["Chocolate Dough", "Buttercream", "Sprinkles"],
+    layers: ["Ciasto Czekoladowe", "Krem Maślany", "Posypka"],
   },
 ];
 
@@ -103,13 +110,13 @@ function CakeCard({ cake, onImport }: CakeCardProps) {
               {cake.layers.map((layer, index) => {
                 const baseLayer = layer.toLowerCase();
                 const colorMap = {
-                  chocolate: "#7B3F00",
-                  vanilla: "#F3E5AB",
-                  strawberry: "#FF9999",
-                  blueberry: "#4169E1",
-                  buttercream: "#FFFDD0",
-                  whipped: "#FFFFFF",
-                  sprinkles: "#FFD700",
+                  czekoladow: "#7B3F00",
+                  waniliow: "#F3E5AB",
+                  truskawkow: "#FF9999",
+                  jagodow: "#4169E1",
+                  maślan: "#FFFDD0",
+                  bita: "#FFFFFF",
+                  posypka: "#FFD700",
                   ganache: "#3D2314",
                   red: "#B22222",
                 };
@@ -121,8 +128,8 @@ function CakeCard({ cake, onImport }: CakeCardProps) {
                   if (baseLayer.includes(key.toLowerCase())) {
                     bgColor = value;
                     if (
-                      ["chocolate", "blueberry", "ganache", "red"].some(
-                        (dark) => baseLayer.includes(dark.toLowerCase())
+                      ["czekoladow", "jagodow", "ganache", "red"].some((dark) =>
+                        baseLayer.includes(dark.toLowerCase())
                       )
                     ) {
                       textColor = "#fff";
@@ -166,16 +173,132 @@ export default function Torty() {
   const router = useRouter();
 
   const handleImport = (cake: Cake) => {
-    localStorage.setItem(
-      "importedCakeConfig",
-      JSON.stringify({
-        layers: cake.layers,
-        cakeId: cake.id,
-        cakeName: cake.name,
-      })
-    );
+    try {
+      // --- 1. Use the builder's real addon list for price/type/color mapping ---
+      // Import the addons array from the builder if possible, or define it here for mapping
+      // For this example, we define a minimal mapping for demo cakes:
+      const addonMap: Record<
+        string,
+        { type: string; color: string; height: number; price: number }
+      > = {
+        "ciasto waniliowe": {
+          type: "dough",
+          color: "#F5DEB3",
+          height: 20,
+          price: 12.99,
+        },
+        "ciasto czekoladowe": {
+          type: "dough",
+          color: "#8B4513",
+          height: 20,
+          price: 14.99,
+        },
+        "ciasto red velvet": {
+          type: "dough",
+          color: "#B22222",
+          height: 20,
+          price: 16.99,
+        },
+        "biszkopt waniliowy": {
+          type: "sponge",
+          color: "#FFFACD",
+          height: 30,
+          price: 9.99,
+        },
+        "biszkopt czekoladowy": {
+          type: "sponge",
+          color: "#5C4033",
+          height: 30,
+          price: 11.99,
+        },
+        "galaretka truskawkowa": {
+          type: "jelly",
+          color: "#FF69B4",
+          height: 10,
+          price: 5.99,
+        },
+        "galaretka jagodowa": {
+          type: "jelly",
+          color: "#4169E1",
+          height: 10,
+          price: 6.99,
+        },
+        "bita śmietana": {
+          type: "cream",
+          color: "#FFFFFF",
+          height: 15,
+          price: 4.99,
+        },
+        "krem maślany": {
+          type: "cream",
+          color: "#FFFDD0",
+          height: 15,
+          price: 6.99,
+        },
+        "ganache czekoladowy": {
+          type: "topping",
+          color: "#3D2314",
+          height: 8,
+          price: 7.99,
+        },
+        posypka: { type: "topping", color: "#FFD700", height: 8, price: 3.99 },
+        // Add more mappings as needed
+      };
 
-    router.push("/kreator");
+      // --- 2. Map layers using the above mapping for correct price/type/color ---
+      const mappedLayers = cake.layers.map((layerName, index) => {
+        const key = layerName.trim().toLowerCase();
+        const addon = addonMap[key];
+        return {
+          id: `imported_${cake.id}_${index}_${Math.random()
+            .toString(36)
+            .substring(2, 9)}`,
+          name: layerName,
+          type: (addon?.type || "cream") as
+            | "dough"
+            | "sponge"
+            | "jelly"
+            | "fruit"
+            | "cream"
+            | "topping",
+          color: addon?.color || "#F5F5F5",
+          height: addon?.height ?? 15,
+          price: addon?.price ?? 0,
+        };
+      });
+
+      // --- 3. Save to localStorage and force context update by using a custom event ---
+      const builderState = {
+        tastePreview: { layers: mappedLayers },
+        appearancePreview: null,
+        packagingPreview: null,
+        basePrice: mappedLayers.reduce((sum, l) => sum + l.price, 0),
+        appearancePrice: 0,
+        packagingPrice: 0,
+        customText: null,
+        editingItemId: null,
+      };
+
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(builderState));
+      localStorage.setItem(
+        "cake-taste-data",
+        JSON.stringify({
+          layers: mappedLayers,
+          basePrice: builderState.basePrice,
+          tastePreview: { layers: mappedLayers },
+        })
+      );
+
+      // --- Force a React state update in the builder by reloading the page after navigation ---
+      router.push("/kreator");
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    } catch (error) {
+      console.error("Failed to save cake configuration:", error);
+      alert("Wystąpił błąd podczas importowania tortu");
+      router.push("/kreator");
+    }
   };
 
   return (

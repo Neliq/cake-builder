@@ -74,7 +74,7 @@ const addons: Addon[] = [
   // Doughs
   {
     id: "d1",
-    name: "Vanilla Dough",
+    name: "Ciasto Waniliowe",
     type: "dough",
     color: "#F5DEB3",
     height: 20,
@@ -83,7 +83,7 @@ const addons: Addon[] = [
   },
   {
     id: "d2",
-    name: "Chocolate Dough",
+    name: "Ciasto Czekoladowe",
     type: "dough",
     color: "#8B4513",
     height: 20,
@@ -92,7 +92,7 @@ const addons: Addon[] = [
   },
   {
     id: "d3",
-    name: "Red Velvet Dough",
+    name: "Ciasto Red Velvet",
     type: "dough",
     color: "#B22222",
     height: 20,
@@ -103,7 +103,7 @@ const addons: Addon[] = [
   // Sponges
   {
     id: "s1",
-    name: "Vanilla Sponge",
+    name: "Biszkopt Waniliowy",
     type: "sponge",
     color: "#FFFACD",
     height: 30,
@@ -112,7 +112,7 @@ const addons: Addon[] = [
   },
   {
     id: "s2",
-    name: "Chocolate Sponge",
+    name: "Biszkopt Czekoladowy",
     type: "sponge",
     color: "#5C4033",
     height: 30,
@@ -121,7 +121,7 @@ const addons: Addon[] = [
   },
   {
     id: "s3", // Example with alcohol
-    name: "Rum Sponge",
+    name: "Biszkopt Rumowy",
     type: "sponge",
     color: "#D2B48C",
     height: 30,
@@ -133,7 +133,7 @@ const addons: Addon[] = [
   // Jellies
   {
     id: "j1",
-    name: "Strawberry Jelly",
+    name: "Galaretka Truskawkowa",
     type: "jelly",
     color: "#FF69B4",
     height: 10,
@@ -141,7 +141,7 @@ const addons: Addon[] = [
   },
   {
     id: "j2",
-    name: "Blueberry Jelly",
+    name: "Galaretka Jagodowa",
     type: "jelly",
     color: "#4169E1",
     height: 10,
@@ -151,7 +151,7 @@ const addons: Addon[] = [
   // Fruits
   {
     id: "f1",
-    name: "Strawberries",
+    name: "Truskawki",
     type: "fruit",
     color: "#FF0000",
     height: 5,
@@ -159,7 +159,7 @@ const addons: Addon[] = [
   },
   {
     id: "f2",
-    name: "Blueberries",
+    name: "Jagody",
     type: "fruit",
     color: "#0000FF",
     height: 5,
@@ -169,7 +169,7 @@ const addons: Addon[] = [
   // Creams
   {
     id: "c1",
-    name: "Whipped Cream",
+    name: "Bita Śmietana",
     type: "cream",
     color: "#FFFFFF",
     height: 15,
@@ -178,7 +178,7 @@ const addons: Addon[] = [
   },
   {
     id: "c2",
-    name: "Buttercream",
+    name: "Krem Maślany",
     type: "cream",
     color: "#FFFDD0",
     height: 15,
@@ -187,7 +187,7 @@ const addons: Addon[] = [
   },
   {
     id: "c3", // Example with alcohol
-    name: "Irish Cream",
+    name: "Krem Irlandzki",
     type: "cream",
     color: "#E1C699",
     height: 15,
@@ -199,7 +199,7 @@ const addons: Addon[] = [
   // Toppings
   {
     id: "t1",
-    name: "Chocolate Ganache",
+    name: "Ganache Czekoladowy",
     type: "topping",
     color: "#3D2314",
     height: 8,
@@ -208,7 +208,7 @@ const addons: Addon[] = [
   },
   {
     id: "t2",
-    name: "Sugar Glaze",
+    name: "Lukier",
     type: "topping",
     color: "#F0F8FF",
     height: 8,
@@ -216,7 +216,7 @@ const addons: Addon[] = [
   },
   {
     id: "t3",
-    name: "Fruit Topping",
+    name: "Polewa Owocowa",
     type: "topping",
     color: "#FF4500",
     height: 8,
@@ -224,7 +224,7 @@ const addons: Addon[] = [
   },
   {
     id: "t4",
-    name: "Nut Topping",
+    name: "Polewa Orzechowa",
     type: "topping",
     color: "#8B4513",
     height: 8,
@@ -233,7 +233,7 @@ const addons: Addon[] = [
   },
   {
     id: "t5",
-    name: "Sprinkles",
+    name: "Posypka",
     type: "topping",
     color: "#FFD700",
     height: 8,
@@ -241,7 +241,7 @@ const addons: Addon[] = [
   },
   {
     id: "t6",
-    name: "Coconut Flakes",
+    name: "Wiórki Kokosowe",
     type: "topping",
     color: "#FFFFFF",
     height: 8,
@@ -1004,6 +1004,7 @@ export default function CakeBuilder({
                               <Button
                                 onClick={(e) => addLayer(addon, e)} // Pass the event object
                                 size="sm"
+                                variant="outline"
                                 className="w-full text-xs"
                               >
                                 Dodaj
