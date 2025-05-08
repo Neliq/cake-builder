@@ -156,8 +156,8 @@ function CakeCard({ cake, onImport }: CakeCardProps) {
       </div>
 
       <div className="p-4">
-        <h2 className="text-xl font-semibold mb-2 text-primary">{cake.name}</h2>
-        <div className="flex justify-between mb-4 text-primary">
+        <h2 className="text-xl font-semibold mb-2">{cake.name}</h2>
+        <div className="flex justify-between mb-4">
           <span>Produkcja: {formatDate(cake.productionDate)}</span>
           <span className="font-bold">{cake.price} zł</span>
         </div>
